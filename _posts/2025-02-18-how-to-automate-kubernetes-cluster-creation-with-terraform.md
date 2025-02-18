@@ -43,6 +43,7 @@ Define a module designed to create a VPC and its related networking infrastructu
 ```hcl
 module "vpc_app" {
   source                          = "aws-ia/vpc/aws"
+
   name                            = "multi-az-vpc"
   cidr_block                      = "10.0.0.0/16"
   vpc_egress_only_internet_gateway = true
@@ -55,12 +56,15 @@ Configure the control plane of the EKS cluster with specified parameters for net
 ```hcl
 module "eks_cluster" {
   source                         = "terraform-aws-modules/eks/aws/eks-cluster-control-plane"
+
   cluster_name                   = var.eks_cluster_name
+
   vpc_id                         = module.vpc_app.vpc_id
   control_plane_subnet_ids       = local.usable_subnet_ids
   public_access_cidrs            = var.endpoint_public_access_cidrs
   kubernetes_version             = var.kubernetes_version
   eks_addons                     = var.eks_addons
+
   upgrade_script                 = false
 }
 ```
