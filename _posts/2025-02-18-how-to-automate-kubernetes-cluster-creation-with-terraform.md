@@ -40,7 +40,7 @@ provider "kubernetes" {
 ```
 Creating a VPC
 Define a module designed to create a VPC and its related networking infrastructure in AWS, configured specifically for use with EKS. This VPC must be tagged to denote that it is shared with Kubernetes.
-
+```hcl
 module "vpc_app" {
   source = "aws-ia/vpc/aws"
   name   = "multi-az-vpc"
@@ -49,9 +49,10 @@ module "vpc_app" {
   az_count = 3
   custom_tags = module.vpc_tags.vpc_eks_tags
 }
+```
 Configuring the EKS Control Plane
 Configure the control plane of the EKS cluster with specified parameters for networking, Kubernetes version, and additional add-ons.
-
+```hcl
 module "eks_cluster" {
   source = "terraform-aws-modules/eks/aws/eks-cluster-control-plane"
   cluster_name                  = var.eks_cluster_name
@@ -62,6 +63,7 @@ module "eks_cluster" {
   eks_addons                     = var.eks_addons
   upgrade_script                 = false
 }
+```
 Setting Up EKS Worker Pools
 We will create two distinct node pools:
 
@@ -76,6 +78,7 @@ The core_workers node pool will be restricted to authorized entities. Here are s
 Implement Security Groups: Limit inbound traffic to the core worker nodes.
 Use IAM Roles: Assign IAM roles with fine-grained permissions.
 Enable Private Access: Use private subnets for core worker nodes.
+```hcl
 module "eks_workers" {
   source = "terraform-aws-modules/eks/aws/eks-cluster-workers"
   name_prefix                = "applications-"
@@ -104,9 +107,11 @@ module "eks_workers" {
   keypair_name                         = var.keypair_name
   associate_public_ip_address          = true
 }
+```
 Security Considerations
 For testing purposes, you may allow SSH from anywhere to the worker nodes. THIS SHOULD NOT BE DONE IN PROD.
 
+```hcl
 resource "aws_security_group_rule" "allow_ssh_from_anywhere" {
   type              = "ingress"
   from_port         = 22
@@ -115,8 +120,9 @@ resource "aws_security_group_rule" "allow_ssh_from_anywhere" {
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = eks_worker_security_group_id
 }
+```
 Similarly, allow access to node ports on the worker nodes for testing purposes only. THIS SHOULD NOT BE DONE IN PROD. INSTEAD, USE LOAD BALANCERS.
-
+```hcl
 resource "aws_security_group_rule" "allow_node_port_from_anywhere" {
   type              = "ingress"
   from_port         = 30000
@@ -125,9 +131,11 @@ resource "aws_security_group_rule" "allow_node_port_from_anywhere" {
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = eks_worker_security_group_id
 }
+```
 IAM Role Mapping
 Create a mapping of IAM roles to Kubernetes RBAC groups in the EKS cluster to control access to the Kubernetes API and manage permissions for users and services effectively.
 
+```hcl
 module "eks_k8s_role_mapping" {
   source = "terraform-aws-modules/eks/aws/role-mapping"
   worker_role_arns = [eks_worker_iam_role_arn]
@@ -140,5 +148,6 @@ module "eks_k8s_role_mapping" {
     "eks-cluster" = eks_cluster_name
   }
 }
+```
 Conclusion
 By following these guidelines, you can automate the deployment and management of EKS clusters effectively while adhering to best practices in security and resource management.
