@@ -1,9 +1,7 @@
 
 # Automating EKS Clusters Using Terraform
 
-This README provides an overview of automating the deployment and management of Amazon Elastic Kubernetes Service (EKS) clusters using Terraform. It covers the necessary steps to set up your environment, define your infrastructure, and ensure best practices for security and resource management.
-
-## Table of Contents
+This post walks through the process of automating the deployment of Amazon Elastic Kubernetes Service (EKS) cluster using Terraform. It covers the steps to set up the environment, define the infrastructure, and ensure best practices.
 
 - [Prerequisites](#prerequisites)
 - [Provider Configuration](#provider-configuration)
@@ -20,7 +18,7 @@ Before you begin, ensure you have the following:
 - **Terraform** 
 - **Packer**
 - **(Optional) kubectl**
-- An AWS account with permissions to create EKS clusters and associated resources.
+- An AWS account and IAM user with permissions to create EKS clusters and associated resources.
 - AWS CLI configured with your credentials.
 
 ## Provider Configuration
@@ -78,13 +76,6 @@ core_workers: Designed for running core services.
 Why Use Multiple Node Pools?
 Using multiple node pools enhances security and resource management by separating application workloads from core services. This allows for stricter security measures on core worker nodes.
 
-## Locking Down Core Worker Nodes
-The core_workers node pool will be restricted to authorized entities. Here are some strategies to achieve this:
-
-Implement Security Groups: Limit inbound traffic to the core worker nodes.
-Use IAM Roles: Assign IAM roles with fine-grained permissions.
-Enable Private Access: Use private subnets for core worker nodes.
-
 ```hcl
 module "eks_workers" {
   source                          = "terraform-aws-modules/eks/aws/eks-cluster-workers"
@@ -110,6 +101,12 @@ module "eks_workers" {
   }
 }
 ```
+## Locking Down Core Worker Nodes
+The core_workers node pool will be restricted to authorized entities. Here are some strategies to achieve this:
+-  **Implement Security Groups**: Limit inbound traffic to the core worker nodes.
+-  **Use IAM Roles**: Assign IAM roles with fine-grained permissions.
+-  **Enable Private Access**: Use private subnets for core worker nodes.
+
 ## Security Considerations
 For testing purposes, we allow SSH from anywhere to the worker nodes. THIS SHOULD NOT BE DONE IN LIVE ENVIRONMENT.
 
