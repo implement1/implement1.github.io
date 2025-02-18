@@ -38,7 +38,7 @@ provider "kubernetes" {
   }
 }
 ```
-Creating a VPC
+## Creating a VPC
 Define a module designed to create a VPC and its related networking infrastructure in AWS, configured specifically for use with EKS. This VPC must be tagged to denote that it is shared with Kubernetes.
 ```hcl
 module "vpc_app" {
@@ -50,7 +50,7 @@ module "vpc_app" {
   custom_tags = module.vpc_tags.vpc_eks_tags
 }
 ```
-Configuring the EKS Control Plane
+## Configuring the EKS Control Plane
 Configure the control plane of the EKS cluster with specified parameters for networking, Kubernetes version, and additional add-ons.
 ```hcl
 module "eks_cluster" {
@@ -64,7 +64,7 @@ module "eks_cluster" {
   upgrade_script                 = false
 }
 ```
-Setting Up EKS Worker Pools
+## Setting Up EKS Worker Pools
 We will create two distinct node pools:
 
 workers: Dedicated to running application pods.
@@ -72,7 +72,7 @@ core_workers: Designed for running core services.
 Why Use Multiple Node Pools?
 Using multiple node pools enhances security and resource management by separating application workloads from core services. This allows for stricter security measures on core worker nodes.
 
-Locking Down Core Worker Nodes
+## Locking Down Core Worker Nodes
 The core_workers node pool will be restricted to authorized entities. Here are some strategies to achieve this:
 
 Implement Security Groups: Limit inbound traffic to the core worker nodes.
@@ -108,7 +108,7 @@ module "eks_workers" {
   associate_public_ip_address          = true
 }
 ```
-Security Considerations
+## Security Considerations
 For testing purposes, you may allow SSH from anywhere to the worker nodes. THIS SHOULD NOT BE DONE IN PROD.
 
 ```hcl
@@ -132,7 +132,7 @@ resource "aws_security_group_rule" "allow_node_port_from_anywhere" {
   security_group_id = eks_worker_security_group_id
 }
 ```
-IAM Role Mapping
+## IAM Role Mapping
 Create a mapping of IAM roles to Kubernetes RBAC groups in the EKS cluster to control access to the Kubernetes API and manage permissions for users and services effectively.
 
 ```hcl
