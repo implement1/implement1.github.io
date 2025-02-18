@@ -37,6 +37,7 @@ provider "kubernetes" {
     args        = ["eks", "get-token", "--cluster-name", eks_cluster.eks_cluster_name]
   }
 }
+```
 Creating a VPC
 Define a module designed to create a VPC and its related networking infrastructure in AWS, configured specifically for use with EKS. This VPC must be tagged to denote that it is shared with Kubernetes.
 
