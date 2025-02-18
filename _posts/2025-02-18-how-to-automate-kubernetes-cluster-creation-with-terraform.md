@@ -42,23 +42,23 @@ provider "kubernetes" {
 Define a module designed to create a VPC and its related networking infrastructure in AWS, configured specifically for use with EKS. This VPC must be tagged to denote that it is shared with Kubernetes.
 ```hcl
 module "vpc_app" {
-  source = "aws-ia/vpc/aws"
-  name   = "multi-az-vpc"
-  cidr_block = "10.0.0.0/16"
+  source                          = "aws-ia/vpc/aws"
+  name                            = "multi-az-vpc"
+  cidr_block                      = "10.0.0.0/16"
   vpc_egress_only_internet_gateway = true
-  az_count = 3
-  custom_tags = module.vpc_tags.vpc_eks_tags
+  az_count                        = 3
+  custom_tags                     = module.vpc_tags.vpc_eks_tags
 }
 ```
 ## Configuring the EKS Control Plane
 Configure the control plane of the EKS cluster with specified parameters for networking, Kubernetes version, and additional add-ons.
 ```hcl
 module "eks_cluster" {
-  source = "terraform-aws-modules/eks/aws/eks-cluster-control-plane"
-  cluster_name                  = var.eks_cluster_name
-  vpc_id                        = module.vpc_app.vpc_id
-  control_plane_subnet_ids      = local.usable_subnet_ids
-  public_access_cidrs           = var.endpoint_public_access_cidrs
+  source                         = "terraform-aws-modules/eks/aws/eks-cluster-control-plane"
+  cluster_name                   = var.eks_cluster_name
+  vpc_id                         = module.vpc_app.vpc_id
+  control_plane_subnet_ids       = local.usable_subnet_ids
+  public_access_cidrs            = var.endpoint_public_access_cidrs
   kubernetes_version             = var.kubernetes_version
   eks_addons                     = var.eks_addons
   upgrade_script                 = false
@@ -80,17 +80,17 @@ Use IAM Roles: Assign IAM roles with fine-grained permissions.
 Enable Private Access: Use private subnets for core worker nodes.
 ```hcl
 module "eks_workers" {
-  source = "terraform-aws-modules/eks/aws/eks-cluster-workers"
-  name_prefix                = "applications-"
-  cluster_name               = eks_cluster_name
-  cluster_security_group      = true
+  source                          = "terraform-aws-modules/eks/aws/eks-cluster-workers"
+  name_prefix                    = "applications-"
+  cluster_name                   = eks_cluster_name
+  cluster_security_group          = true
   
   autoscaling_group_configurations = {
     asg = {
-      min_size          = 1
-      max_size          = 4
-      asg_instance_type = "t3.medium"
-      subnet_ids        = local.usable_subnet_ids
+      min_size           = 1
+      max_size           = 4
+      asg_instance_type  = "t3.medium"
+      subnet_ids         = local.usable_subnet_ids
       
       tags = [
         {
@@ -101,11 +101,6 @@ module "eks_workers" {
       ]
     }
   }
-  
-  autoscaler_discovery_tags            = true
-  asg_default_instance_user_data_base64 = base64encode(local.app_workers_user_data)
-  keypair_name                         = var.keypair_name
-  associate_public_ip_address          = true
 }
 ```
 ## Security Considerations
@@ -120,16 +115,17 @@ resource "aws_security_group_rule" "allow_ssh_from_anywhere" {
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = eks_worker_security_group_id
 }
+
 ```
 Similarly, allow access to node ports on the worker nodes for testing purposes only. THIS SHOULD NOT BE DONE IN PROD. INSTEAD, USE LOAD BALANCERS.
 ```hcl
 resource "aws_security_group_rule" "allow_node_port_from_anywhere" {
-  type              = "ingress"
-  from_port         = 30000
-  to_port           = 32767
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = eks_worker_security_group_id
+  type                = "ingress"
+  from_port           = 30000
+  to_port             = 32767
+  protocol            = "tcp"
+  cidr_blocks         = ["0.0.0.0/0"]
+  security_group_id   = eks_worker_security_group_id
 }
 ```
 ## IAM Role Mapping
@@ -137,17 +133,17 @@ Create a mapping of IAM roles to Kubernetes RBAC groups in the EKS cluster to co
 
 ```hcl
 module "eks_k8s_role_mapping" {
-  source = "terraform-aws-modules/eks/aws/role-mapping"
-  worker_role_arns = [eks_worker_iam_role_arn]
+  source                     = "terraform-aws-modules/eks/aws/role-mapping"
+  worker_role_arns          = [eks_worker_iam_role_arn]
   
   role_rbac_group_mappings = {
     (local.real_arn) = ["system:masters"]
   }
-  
+
   config_map = {
     "eks-cluster" = eks_cluster_name
   }
 }
 ```
-Conclusion
+## Conclusion
 By following these guidelines, you can automate the deployment and management of EKS clusters effectively while adhering to best practices in security and resource management.
