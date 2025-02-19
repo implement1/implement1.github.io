@@ -90,7 +90,7 @@ module "eks_cluster" {
 We will create two distinct node pools:
 
 - **workers**: Dedicated to running application pods.
-- **core-workers**: Designed for running core services.
+- **core-workers**: Designed for running core services.<br>
 **Why Use Multiple Node Pools?**
 Using multiple node pools enhances security and resource management by separating application workloads from core services. This allows for stricter security measures on core worker nodes.
 
