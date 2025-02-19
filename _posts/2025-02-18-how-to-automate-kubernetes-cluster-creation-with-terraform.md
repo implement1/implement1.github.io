@@ -149,8 +149,16 @@ module "eks_k8s_role_mapping" {
   }
 }
 ```
-
-![Alt text](../media/kubectl-get-pods.png)
+```hcl
+ kubectl get pods -n kube-system
+ NAME                                  READY    STATUS      RESTARTS    AGE
+ aws-node-h4k7v                   2/2       Running    0                18m
+ aws-node-wtb2b                   2/2       Running    0                18m
+ coredns-54d6f577c6-72nxn         1/1       Running    0                22m
+ coredns-54d6f577c6-bhdhj         1/1       Running    0                22m
+ kube-proxy-8\82s                 1/1       Running    0                18m
+ kube-proxy-9hwqh                 1/1       Running    0                18m
+```
 
 ## Conclusion
 This post outlines the steps involved in automating the deployment and management of EKS clusters while adhering to best practices in security and resource management. In the next post, we will be covering the deployment of core services including - **FluentD**, **ALB Ingress Controller** and **External-DNS**.
