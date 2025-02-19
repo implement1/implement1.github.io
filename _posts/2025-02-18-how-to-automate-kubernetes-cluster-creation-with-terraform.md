@@ -14,10 +14,10 @@ This post walks through the process of automating the deployment of Amazon Elast
 
 ## Prerequisites
 
-Before you begin, ensure you have the following:
+The following tools are required for this demo:
 - **Terraform** 
 - **Packer**
-- **(Optional) kubectl**
+- **kubectl**
 - An AWS account and IAM user with permissions to create EKS clusters and associated resources.
 - AWS CLI configured with your credentials.
 
