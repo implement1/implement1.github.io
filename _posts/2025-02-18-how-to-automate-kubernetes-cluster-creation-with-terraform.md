@@ -133,7 +133,7 @@ The core_workers node pool will be restricted to authorized entities. Here are s
 -  **Enable Private Access**: Use private subnets for core worker nodes.
 
 ## Security Considerations
-For testing purposes, allow SSH from anywhere to the worker nodes. THIS SHOULD NOT BE DONE IN LIVE ENVIRONMENT.
+For demo purposes, allow SSH from anywhere to the worker nodes. THIS SHOULD NOT BE DONE IN LIVE ENVIRONMENT.
 
 ```hcl
 resource "aws_security_group_rule" "allow_ssh_from_anywhere" {
@@ -145,7 +145,7 @@ resource "aws_security_group_rule" "allow_ssh_from_anywhere" {
   security_group_id = eks_worker_security_group_id
 }
 ```
-Similarly, allow access to node ports on the worker nodes for testing purposes. THIS SHOULD NOT BE DONE IN LIVE ENVIRONMENT. INSTEAD, WE USE LOAD BALANCERS IN SUCH ENVIRONMENTS.
+Similarly, allow access to node ports on the worker nodes for demo purposes. THIS SHOULD NOT BE DONE IN LIVE ENVIRONMENT. INSTEAD, WE USE LOAD BALANCERS IN SUCH ENVIRONMENTS.
 
 ```hcl
 resource "aws_security_group_rule" "allow_node_port_from_anywhere" {
