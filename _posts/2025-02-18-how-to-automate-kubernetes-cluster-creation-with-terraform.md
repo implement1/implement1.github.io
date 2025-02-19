@@ -31,7 +31,8 @@ amazon-ebs.eks: output will be in this color.
     amazon-ebs.eks: Found Image ID: ami-0dc56ff61686a22ad
 ==> amazon-ebs.eks: Creating temporary keypair: packer_67b581bc-3728-e517-d57b-0955a65bcbff
 Build 'amazon-ebs.eks' finished after 3 minutes 40 seconds.
-
+...
+...
 ==> Wait completed after 3 minutes 40 seconds
 
 ==> Builds finished. The artifacts of successful builds are:
@@ -118,6 +119,13 @@ module "eks_workers" {
     }
   }
 }
+
+include_autoscaler_discovery_tags            = true
+asg_default_instance_ami                     = var.eks_worker_ami
+asg_default_instance_user_data_base64        = base64encode(local.app_workers_user_data)
+cluster_instance_keypair_name                = var.eks_worker_keypair_name
+cluster_instance_associate_public_ip_address = true
+use_imdsv1                                   = var.use_imdsv1
 ```
 ## Locking Down Core Worker Nodes
 The core_workers node pool will be restricted to authorized entities. Here are some strategies to achieve this:
