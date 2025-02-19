@@ -149,6 +149,7 @@ module "eks_k8s_role_mapping" {
   }
 }
 ```
+The following output provides a snapshot of the pods running in the kube system namespace indicating that the cluster is functionning normally.
 ```hcl
  kubectl get pods -n kube-system
  NAME                                  READY    STATUS      RESTARTS    AGE
