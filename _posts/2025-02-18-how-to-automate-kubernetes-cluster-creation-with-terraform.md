@@ -1,5 +1,5 @@
 
-# Automating EKS Clusters Using Terraform
+# How to automate the deployment of Amazon EKS Clusters Using Terraform
 
 This post walks through the process of automating the deployment of Amazon Elastic Kubernetes Service (EKS) cluster using Terraform. It covers the steps to set up the environment, define the infrastructure, and ensure best practices.
 
