@@ -149,7 +149,9 @@ module "eks_k8s_role_mapping" {
   }
 }
 ```
+```hcl
 ![Alt text](../media/kubectl-get-pods.png)
+```
 
 ## Conclusion
 This post outlines the steps involved in automating the deployment and management of EKS clusters while adhering to best practices in security and resource management. In the next post, we will be covering the deployment of core services including - **FluentD**, **ALB Ingress Controller** and **External-DNS**.
