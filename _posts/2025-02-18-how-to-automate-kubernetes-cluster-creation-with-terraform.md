@@ -119,7 +119,6 @@ module "eks_workers" {
     }
   }
 }
-
 include_autoscaler_discovery_tags            = true
 asg_default_instance_ami                     = var.eks_worker_ami
 asg_default_instance_user_data_base64        = base64encode(local.app_workers_user_data)
@@ -164,14 +163,16 @@ We create a mapping of IAM roles to Kubernetes RBAC groups in the EKS cluster to
 ```hcl
 module "eks_k8s_role_mapping" {
   source                     = "terraform-aws-modules/eks/aws/role-mapping"
-  worker_role_arns          = [eks_worker_iam_role_arn]
-  
+  worker_role_arns          = [
+                                module.eks_worker.iam_role_arn,
+                                module.eks_core_worker.iam_role_arn
+                              ]
   role_rbac_group_mappings = {
     (local.real_arn) = ["system:masters"]
   }
 
-  config_map = {
-    "eks-cluster" = eks_cluster_name
+  config_map_labels = {
+    "eks-cluster" = module.eks_cluster.eks_cluster_name
   }
 }
 ```
