@@ -21,6 +21,24 @@ The following tools are required for this demo:
 - An AWS account and IAM user with permissions to create EKS clusters and associated resources.
 - AWS CLI configured with your credentials.
 
+This is using self managed workers nodes, as such we need to build an EKS optimized ami using packer. 
+```hcl
+packer build packer/eks.pkr.hcl                                    
+amazon-ebs.eks: output will be in this color.
+
+==> amazon-ebs.eks: Prevalidating any provided VPC information
+==> amazon-ebs.eks: Prevalidating AMI Name: amazon-eks-cluster-5ba302bc-18bc-4104-aff1-fa49e4a8be6a
+    amazon-ebs.eks: Found Image ID: ami-0dc56ff61686a22ad
+==> amazon-ebs.eks: Creating temporary keypair: packer_67b581bc-3728-e517-d57b-0955a65bcbff
+Build 'amazon-ebs.eks' finished after 3 minutes 40 seconds.
+
+==> Wait completed after 3 minutes 40 seconds
+
+==> Builds finished. The artifacts of successful builds are:
+--> amazon-ebs.eks: AMIs were created:
+us-east-1: ami-054fc20a9f235c9f7
+```
+
 ## Provider Configuration
 
 Define a provider block to set up authentication credentials and secure connection details to connect Terraform to the EKS cluster.
@@ -86,7 +104,7 @@ module "eks_workers" {
   autoscaling_group_configurations = {
     asg = {
       min_size           = 1
-      max_size           = 4
+      max_size           = 2
       asg_instance_type  = "t3.medium"
       subnet_ids         = local.usable_subnet_ids
       
