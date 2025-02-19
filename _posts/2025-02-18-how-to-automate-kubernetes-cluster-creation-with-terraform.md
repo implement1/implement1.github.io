@@ -162,4 +162,4 @@ The following output provides a snapshot of the pods running in the kube system 
 ```
 
 ## Conclusion
-This post outlines the steps involved in automating the deployment and management of EKS clusters while adhering to best practices in security and resource management. In the next post, we will be covering the deployment of core services including - **FluentD**, **ALB Ingress Controller** and **External-DNS**.
+In this post, we saw how to automate the deployment of EKS clusters while adhering to best practices. In the next post, we will be covering the deployment of core services including FluentD, ALB Ingress Controller, External-DNS and Cloudwatch Agent.
