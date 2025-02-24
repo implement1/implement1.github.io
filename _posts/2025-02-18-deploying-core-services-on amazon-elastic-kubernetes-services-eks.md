@@ -202,8 +202,7 @@ time="2025-02-24T05:48:50Z" level=info msg="Applying provider record filter for 
 ```
 hcl```
 2025-02-24T05:58:48Z I! {"caller":"awsemfexporter@v0.84.0/emf_exporter.go:109","msg":"Start processing resource metrics","kind":"exporter","data_type":"metrics","name":"awsemf/
-Cloudwatch agent
-containerinsights","labels":{"AutoScalingGroupName":"","ClusterName":"test-eks","ContainerName":"coredns","FullPodName":"aws-for-fluent-bit-szhsz","Namespace":"kube-system","NodeName":"ip-10-0-3-119.ec2.internal","PodName":"aws-cloudwatch-agent-aws-cloudwatch-metrics","Service":"kube-dns","Sources":"[\"apiserver\"]","Timestamp":"1740376723904","Type":"ClusterService","Version":"0","container_status":"Running","device":"/dev/nvme0n1","fstype":"vfs","interface":"eni39ad90ef0ad","kubernetes":"{\"namespace_name\":\"kube-system\",\"service_name\":\"kube-dns\"}","pod_status":"Running"}}
+Cloudwatch agent containerinsights","labels":{"AutoScalingGroupName":"","ClusterName":"test-eks","ContainerName":"coredns","FullPodName":"aws-for-fluent-bit-szhsz","Namespace":"kube-system","NodeName":"ip-10-0-3-119.ec2.internal","PodName":"aws-cloudwatch-agent-aws-cloudwatch-metrics","Service":"kube-dns","Sources":"[\"apiserver\"]","Timestamp":"1740376723904","Type":"ClusterService","Version":"0","container_status":"Running","device":"/dev/nvme0n1","fstype":"vfs","interface":"eni39ad90ef0ad","kubernetes":"{\"namespace_name\":\"kube-system\",\"service_name\":\"kube-dns\"}","pod_status":"Running"}}
 ```
 
 ## Conclusion
