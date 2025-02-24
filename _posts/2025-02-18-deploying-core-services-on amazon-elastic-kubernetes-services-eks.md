@@ -1,4 +1,4 @@
-## Table of Contents
+## Deploying core services on Amazon Elastic Kubernetes Services EKS Cluster
 
 - [Introduction](#introduction)
 - [Prerequisites](#prerequisites)
