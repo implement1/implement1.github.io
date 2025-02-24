@@ -24,15 +24,16 @@ This module configures:
 - An existing EKS cluster.
 
 ## Configuration
-CloudWatch Log Group
+### CloudWatch Log Group
 This module creates CloudWatch log group for the EKS cluster and configure Fluent Bit to collect and send container logs to this log group. It also includes settings for service accounts, log stream configuration, and pod tolerations to manage where and how logging pods can be scheduled within the Kubernetes cluster.
 ```hcl
 resource "aws_cloudwatch_log_group" "eks" {
   name = "${var.cluster_name}-logs"
 }
-Fluent Bit Configuration
+```
+### Fluent Bit Configuration
 This module unifies the log streams in the Kubernetes cluster to be shipped to an aggregation service like Cloudwatch or Kinesis on AWS. It installs fluent-bit that monitors the log files, parses custom log formats and ships them to a log aggregation service. 
-
+```hcl
 module "fluent_bit" {
   source = "git::https://github.com/DNXLabs/terraform-aws-eks-fluentbit.git"
   
@@ -54,15 +55,15 @@ module "fluent_bit" {
   ]
 }
 ```
-CloudWatch Agent Deployment
+### CloudWatch Agent Deployment
 This module deploys the CloudWatch Agent into the EKS cluster. The agent collects system level metrics from EC2 instances and ship them to Cloudwatch.It also sets a taint (tenancy = main) to ensure that only pods with this toleration can be scheduled on core nodes.
 module "cloudwatch_agent" {
   source = "terraform-aws-modules/cloudwatch/aws"
   
   cluster_name    = var.cluster_name
   service_accounts = var.service_accounts_config
-  
-  tolerations = [
+
+   tolerations = [
     {
       key      = "tenancy"
       operator = "Equal"
@@ -71,10 +72,13 @@ module "cloudwatch_agent" {
     },
   ]
 }
-ALB Ingress Controller
+}
+
+### ALB Ingress Controller
 
 This module deploys the ALB Ingress Controller to integrate Kubernetes Service endpoints with Application Load balancer. Ingress resources configure and implement Layer 7 load balancers.
 It also sets a taint (tenancy = main) to ensure that only pods with this toleration can be scheduled on core nodes.
+```hcl
 module "ingress" {
   source = "terraform-aws-modules/alb/aws"
   
@@ -100,8 +104,10 @@ module "ingress" {
     },
   ]
 }
-Kubernetes Cluster Autoscaler
-Configure the Kubernetes Cluster Autoscaler to manage the scaling of nodes in the EKS cluster based on workload demands. In this example, if a node is underutilized for 10 minutes, it can be considered for scaling down. After adding a new node, the autoscaler will wait 10 minutes before considering scaling down any nodes. With tolerations for the autoscaler pods, they are allowed to be scheduled on nodes labeled with tenancy = main. The priorities map ensures that resource-intensive applications are scheduled on larger instances when available.
+```
+### Kubernetes Cluster Autoscaler
+This module configures the Kubernetes Cluster Autoscaler to manage the scaling of nodes in the EKS cluster based on workload demands. In this example, if a node is underutilized for 10 minutes, it can be considered for scaling down. After adding a new node, the autoscaler will wait 10 minutes before considering scaling down any nodes. With tolerations for the autoscaler pods, they are allowed to be scheduled on nodes labeled with tenancy = main. The priorities map ensures that resource-intensive applications are scheduled on larger instances when available.
+```hcl
 module "autoscaler" {
   source = "lablabs/cluster-autoscaler/aws"
   
@@ -131,11 +137,12 @@ module "autoscaler" {
     },
   ]
  }
+```
 
-External DNS
+### External DNS
 
 This module  links a known domain name to an Ingress endpoint managed by Kubernetes by configuring Route 53 Hosted Zones to point DNS records to Ingress endpoints.
-
+```hcl
 module "k8s_external_dns" {
   source = "lablabs/eks-external-dns/aws"
 
@@ -163,3 +170,4 @@ module "k8s_external_dns" {
     },
   ]
 }
+```
