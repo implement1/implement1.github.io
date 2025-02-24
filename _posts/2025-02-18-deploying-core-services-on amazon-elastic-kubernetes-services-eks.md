@@ -172,6 +172,7 @@ module "external_dns" {
 }
 ```
 The following output provides a snapshot of the pods running in the kube system namespace indicating that the cluster is functionning normally.
+
 hcl```
 aws-alb-ingress-controller-aws-load-balancer-controller-6bv85sn   1/1     Running   0          19m
 aws-cloudwatch-agent-aws-cloudwatch-metrics-25dl2                 1/1     Running   0          19m
@@ -187,6 +188,7 @@ external-dns-665dfdfd4-xhkdg                                      1/1     Runnin
 kube-proxy-cg7b5                                                  1/1     Running   0          38m
 kube-proxy-p2cs8                                                  1/1     Running   0          39m
 ```
+
 hcl```
 containerinsights","labels":{"AutoScalingGroupName":"","ClusterName":"test-eks","ContainerName":"coredns","FullPodName":"aws-for-fluent-bit-szhsz","Namespace":"kube-system","NodeName":"ip-10-0-3-119.ec2.internal","PodName":"aws-cloudwatch-agent-aws-cloudwatch-metrics","Service":"kube-dns","Sources":"[\"apiserver\"]","Timestamp":"1740376723904","Type":"ClusterService","Version":"0","container_status":"Running","device":"/dev/nvme0n1","fstype":"vfs","interface":"eni39ad90ef0ad","kubernetes":"{\"namespace_name\":\"kube-system\",\"service_name\":\"kube-dns\"}","pod_status":"Running"}}
 ```
@@ -196,7 +198,7 @@ time="2025-02-24T05:48:44Z" level=info msg="Using inCluster-config based on serv
 time="2025-02-24T05:48:44Z" level=info msg="Created Kubernetes client https://172.20.0.1:443"
 time="2025-02-24T05:48:45Z" level=info msg="Applying provider record filter for domains: [ cloudresolve.net. .cloudresolve.net.]"
 time="2025-02-24T05:48:45Z" level=info msg="All records are already up to date"
-time="2025-02-24T05:48:50Z" level=info msg="Applying provider record filter for domains: [cloudresolve.net. .cloudresolve.net.]"
+time="2025-02-24T05:48:50Z" level=info msg="Applying provider record filter for domains: [ cloudresolve.net. .cloudresolve.net.]"
 ```
 hcl```
 2025-02-24T05:58:48Z I! {"caller":"awsemfexporter@v0.84.0/emf_exporter.go:109","msg":"Start processing resource metrics","kind":"exporter","data_type":"metrics","name":"awsemf/
