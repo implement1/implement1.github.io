@@ -206,6 +206,22 @@ time="2025-02-24T05:48:50Z" level=info msg="Applying provider record filter for 
 2025-02-24T05:58:48Z I! {"caller":"awsemfexporter@v0.84.0/emf_exporter.go:109","msg":"Start processing resource metrics","kind":"exporter","data_type":"metrics","name":"awsemf/
 Cloudwatch agent containerinsights","labels":{"AutoScalingGroupName":"","ClusterName":"test-eks","ContainerName":"coredns","FullPodName":"aws-for-fluent-bit-szhsz","Namespace":"kube-system","NodeName":"ip-10-0-3-119.ec2.internal","PodName":"aws-cloudwatch-agent-aws-cloudwatch-metrics","Service":"kube-dns","Sources":"[\"apiserver\"]","Timestamp":"1740376723904","Type":"ClusterService","Version":"0","container_status":"Running","device":"/dev/nvme0n1","fstype":"vfs","interface":"eni39ad90ef0ad","kubernetes":"{\"namespace_name\":\"kube-system\",\"service_name\":\"kube-dns\"}","pod_status":"Running"}}
 ```
+#### Cluster auto scaler pod Logs
+```hcl
+I0224 06:10:39.728519       1 auto_scaling_groups.go:351] Regenerating instance to ASG map for ASGs: []
+I0224 06:10:39.728549       1 auto_scaling.go:199] 0 launch configurations already in cache
+I0224 06:10:39.728558       1 aws_manager.go:268] Refreshed ASG list, next refresh after 2025-02-24 06:11:39.728554067 +0000 UTC m=+1387.584293828
+I0224 06:10:39.728981       1 filter_out_schedulable.go:65] Filtering out schedulables
+I0224 06:10:39.729052       1 filter_out_schedulable.go:132] Filtered out 0 pods using hints
+I0224 06:10:39.729081       1 filter_out_schedulable.go:170] 0 pods were kept as unschedulable based on caching
+I0224 06:10:39.729132       1 filter_out_schedulable.go:171] 0 pods marked as unschedulable can be scheduled.
+I0224 06:10:39.729180       1 filter_out_schedulable.go:82] No schedulable pods
+I0224 06:10:39.729250       1 static_autoscaler.go:420] No unschedulable pods
+I0224 06:10:39.729303       1 static_autoscaler.go:467] Calculating unneeded nodes
+I0224 06:10:39.729365       1 pre_filtering_processor.go:57] Skipping ip-10-0-3-141.ec2.internal - no node group config
+I0224 06:10:39.729411       1 pre_filtering_processor.go:57] Skipping ip-10-0-3-119.ec2.internal - no node group config
+I0224 06:10:39.730201       1 static_autoscaler.go:521] Scale down status: unneededOnly=false lastScaleUpTime=2025-02-24 04:48:35.392619789 +0000 UTC m=-3596.751640416 lastScaleDownDeleteTime=2025-02-24 04:48:35.392619789 +0000 UTC m=-3596.751640416 lastScaleDownFailTime=2025-02-24 04:48:35.392619789 +0000 UTC m=-3596.751640416 scaleDownForbidden=false isDeleteInProgress=false scaleDownInCooldown=false
+```
 
 ## Conclusion
 In this post, we deployed core services that are essential for operating a production grade EKS cluster. In the next post, we will deploy a sample application leveraging all the components previously deployed. This application will be exposed externally through the AWS application load balancer ALB and mapped to a custom domain name using external DNS.
