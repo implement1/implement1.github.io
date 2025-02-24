@@ -57,6 +57,7 @@ module "fluent_bit" {
 ```
 ### CloudWatch Agent Deployment
 This module deploys the CloudWatch Agent into the EKS cluster. The agent collects system level metrics from EC2 instances and ship them to Cloudwatch.It also sets a taint (tenancy = main) to ensure that only pods with this toleration can be scheduled on core nodes.
+```hcl
 module "cloudwatch_agent" {
   source = "terraform-aws-modules/cloudwatch/aws"
   
@@ -72,7 +73,7 @@ module "cloudwatch_agent" {
     },
   ]
 }
-}
+```
 
 ### ALB Ingress Controller
 
@@ -82,9 +83,9 @@ It also sets a taint (tenancy = main) to ensure that only pods with this tolerat
 module "ingress" {
   source = "terraform-aws-modules/alb/aws"
   
-  cluster_name    = var.cluster_name
-  vpc_id          = var.vpc_id
-  aws_region      = var.aws_region
+  cluster_name     = var.cluster_name
+  vpc_id           = var.vpc_id
+  aws_region       = var.aws_region
   service_accounts = var.service_accounts_config
   
   tolerations = [
@@ -106,7 +107,7 @@ module "ingress" {
 }
 ```
 ### Kubernetes Cluster Autoscaler
-This module configures the Kubernetes Cluster Autoscaler to manage the scaling of nodes in the EKS cluster based on workload demands. In this example, if a node is underutilized for 10 minutes, it can be considered for scaling down. After adding a new node, the autoscaler will wait 10 minutes before considering scaling down any nodes. With tolerations for the autoscaler pods, they are allowed to be scheduled on nodes labeled with tenancy = main. The priorities map ensures that resource-intensive applications are scheduled on larger instances when available.
+This module configures the Kubernetes Cluster Autoscaler to manage the scaling of nodes in the EKS cluster based on workload demands. In this example, if a node is underutilized for 10 minutes, it can be considered for scaling down. Likewise, after adding a new node, the autoscaler will wait 10 minutes before considering scaling down any nodes. With tolerations for the autoscaler pods, they are allowed to be scheduled on nodes labeled with tenancy = main. The priorities map ensures that resource-intensive applications are scheduled on larger instances when available.
 ```hcl
 module "autoscaler" {
   source = "lablabs/cluster-autoscaler/aws"
@@ -117,8 +118,8 @@ module "autoscaler" {
   version                                = var.autoscaler_version
   
   priorities = {
-    10 = [".*t3\\.small.*"]
-    50 = [".*t3\\.medium.*"]
+    20 = [".*t3\\.small.*"]
+    30 = [".*t3\\.medium.*"]
   }
   
   scaling_strategy = var.scaling_strategy
@@ -143,19 +144,19 @@ module "autoscaler" {
 
 This module  links a known domain name to an Ingress endpoint managed by Kubernetes by configuring Route 53 Hosted Zones to point DNS records to Ingress endpoints.
 ```hcl
-module "k8s_external_dns" {
+module "external_dns" {
   source = "lablabs/eks-external-dns/aws"
 
   aws_region                           = var.aws_region
-  cluster_name                     = var.cluster_name
+  cluster_name                         = var.cluster_name
   txt_owner_id                         = var.eks_cluster_name
- service_accounts                  = var.service_accounts_config
+  service_accounts                     = var.service_accounts_config
 
   route53_record_update_policy = "sync"
 
- zone_filters     = var.route53_zone_id_filters
- zone_tag_filters    = var.route53_zone_tag_filters
- zone_domain_filters = var.route53_zone_domain_filters
+  zone_filters     = var.route53_zone_id_filters
+  zone_tag_filters    = var.route53_zone_tag_filters
+  zone_domain_filters = var.route53_zone_domain_filters
 
   trigger_loop_on_event = true
   poll_interval         = “10m"
