@@ -3,8 +3,7 @@
 - [Introduction](#introduction)
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
-- [Usage](#usage)
-- [Additional Information](#additional-information)
+- [Conclusion](#Conclusion)
 
 ## Introduction
 
@@ -172,3 +171,8 @@ module "external_dns" {
   ]
 }
 ```
+The following output provides a snapshot of the pods running in the kube system namespace indicating that the cluster is functionning normally.
+
+## Conclusion
+In this post, we deployed core services that are essential for operating a production grade EKS cluster. In the next post, we will deploy a sample application leveraging all the components previously deployed. This application will be exposed externally through the AWS application load balancer ALB and mapped to a custom domain name using external DNS.
+  
