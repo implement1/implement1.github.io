@@ -121,7 +121,7 @@ module "autoscaler" {
     30 = [".*t3\\.medium.*"]
   }
   
-  scaling_strategy = var.scaling_strategy
+  scaling_strategy = "priority"
   
   container_extra_args = {
     scale-down-unneeded-time   = "10m"
