@@ -141,7 +141,7 @@ module "autoscaler" {
 
 ### External DNS
 
-This module  links a known domain name to an Ingress endpoint managed by Kubernetes by configuring Route 53 Hosted Zones to point DNS records to Ingress endpoints.
+This module  links a known domain name to an Ingress endpoint managed by Kubernetes by configuring Route 53 Hosted Zones to point DNS records to Ingress endpoints. This automates the process of mapping domain names to ingress endpoint, and avoids waiting for the resource to become available. 
 ```hcl
 module "external_dns" {
   source = "lablabs/eks-external-dns/aws"
@@ -224,5 +224,5 @@ I0224 06:10:39.730201       1 static_autoscaler.go:521] Scale down status: unnee
 ```
 
 ## Conclusion
-In this post, we deployed core services that are essential for operating a production grade EKS cluster. In the next post, we will deploy a sample application leveraging all the components previously deployed. This application will be exposed externally through the AWS application load balancer ALB and mapped to a custom domain name using external DNS.
+This post discussed the deployment of services that are essential for operating a production grade EKS cluster. With all the services in place, in the next post, we will deploy an application on this cluster leveraging all the components previously installed. This application will be exposed externally through the AWS application load balancer ALB and mapped to a custom domain name using external DNS.
   
