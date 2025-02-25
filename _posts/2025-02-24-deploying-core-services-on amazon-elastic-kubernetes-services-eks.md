@@ -19,7 +19,7 @@ This module configures:
 ## Prerequisites
 
 - Terraform installed on your local machine.
-- An AWS account with permissions to create EKS clusters and associated resources.
+- An AWS IAM user account with permissions to create EKS cluster and associated resources.
 - An existing EKS cluster.
 
 ## Configuration
