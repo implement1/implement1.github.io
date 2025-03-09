@@ -130,7 +130,7 @@ locals {
   )
 }
 ```
-## Route 53 Hosted Zone Configuration
+## Route 53 Hosted Zone data source
 Configure the Route 53 hosted zone:
 ```hcl
 data "aws_route53_zone" "ingress" {
