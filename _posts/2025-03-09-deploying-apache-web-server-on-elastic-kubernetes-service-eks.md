@@ -115,7 +115,7 @@ ingress:
   hosts: ${hosts}
   servicePort: app
 ```
-## Manage Hosted Zones for Ingress Domain
+## Define Ingress Domain variable settings
 These variables are used in the Terraform configuration to set up DNS records related to the Apache web server deployment. It constructs a fully qualified domain name (FQDN) by concatenating the string "apache." with the hostname of the Route 53 hosted zone.
 ```hcl
 locals {
