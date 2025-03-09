@@ -70,17 +70,17 @@ resource "helm_release" "apache" {
 ### values.yaml Configuration
 The values.yaml file specifies:
 
-The container image repository that should be used.
-The tag of the image (e.g., 'latest') that should be used.
-The image pull policy to determine when the image will be pulled.
-The number of replica pods that should be deployed and maintained at any given point in time.
-Liveness probes to indicate when the container needs to be restarted to recover.
-Readiness probes to indicate when the container is unable to serve traffic.
-Ingress annotations to configure the ALB Ingress controller:
-Enables an ALB Ingress resource that routes traffic to specified hosts and paths.
-Sets up an internet-facing ALB with SSL termination using a specified certificate.
-Configures DNS settings with a TTL for external DNS.
-Defines the ports on which the ALB listens and the backend service port to which traffic will be directed.
+- **Image repository** The container image repository that should be used.
+- **Image tag** The tag of the image (e.g., 'latest') that should be used.
+- **Image pull repository** The image pull policy to determine when the image will be pulled.
+- **number of replicas** The number of replica pods that should be deployed and maintained at any given point in time.
+- **Liveness probe** Liveness probes to indicate when the container needs to be restarted to recover.
+- **Readiness probe** Readiness probes to indicate when the container is unable to serve traffic.
+- **Ingress** Ingress annotations to configure the ALB Ingress controller:
+  - Enables an ALB Ingress resource that routes traffic to specified hosts and paths.
+  - Sets up an internet-facing ALB with SSL termination using a specified certificate.
+  - Configures DNS settings with a TTL for external DNS.
+  - Defines the ports on which the ALB listens and the backend service port to which traffic will be directed.
 
 ```hcl
 image:
@@ -109,7 +109,7 @@ ingress:
     external-dns.alpha.kubernetes.io/ttl: '60'
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/listen-ports: '${ports}'
-    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-east-1:481665104120:certificate/11b3fcf3-8ab9-4331-8c65-04c041f66b4f"
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-east-1:XXXXXXXXXXXX:certificate/11g4d0-85h9-4171-8c65-80c041f52b4f"
   path: /
   pathType: Prefix
   hosts: ${hosts}
