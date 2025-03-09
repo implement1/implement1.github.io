@@ -117,7 +117,7 @@ ingress:
 ```
 ## Manage Hosted Zones for Ingress Domain
 These variables are used in the Terraform configuration to set up DNS records related to the Apache web server deployment. It constructs a fully qualified domain name (FQDN) by concatenating the string "apache." with the hostname of the Route 53 hosted zone.
-
+```hcl
 locals {
   domain_name = "apache.${local.dns_name}"
   dns_name    = replace(
@@ -129,14 +129,16 @@ locals {
     "",
   )
 }
+```
 ## Route 53 Hosted Zone Configuration
 Configure the Route 53 hosted zone:
-
+```hcl
 data "aws_route53_zone" "ingress" {
   name = "cloudresolve.net"
   tags = {
     public-access = true
   }
 }
+```
 ## Conclusion
 We have successfully deployed an Apache web server helm chart application your Elastic Kubernetes Services EKS. environment.
