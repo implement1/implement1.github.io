@@ -1,4 +1,4 @@
-# Deploying a Dockerized Apache Web Server using Helm
+# Deploying Apache Web Server on Kubernetes using Helm
 
 This guide outlines the steps to deploy a Dockerized Apache web server application using Helm and Terraform in a Kubernetes environment.
 
