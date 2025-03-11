@@ -1,4 +1,4 @@
-# Deploying Apache Web Server on Kubernetes using Helm
+# Deploying Nginx Web Server on Kubernetes using Helm
 
 This guide outlines the steps to deploy a Dockerized Apache web server application using Helm and Terraform in a Kubernetes environment.
 
@@ -6,7 +6,7 @@ This guide outlines the steps to deploy a Dockerized Apache web server applicati
 - [Prerequisites](#prerequisites)
 - [Setup Terraform Connection](#setup-terraform-connection)
 - [Configure Helm Connection](#configure-helm-connection)
-- [Deploy Apache Web Server using Helm Chart](#deploy-apache-web-server-using-helm-chart)
+- [Deploy Nginx Server using Helm Chart](#deploy-apache-web-server-using-helm-chart)
 - [Manage Hosted Zones for Ingress Domain](#manage-hosted-zones-for-ingress-domain)
 - [Route 53 Hosted Zone Configuration](#route-53-hosted-zone-configuration)
 - [Conclusion](#conclusion)
@@ -45,7 +45,7 @@ provider "helm" {
   }
 }
 ```
-## Deploying Apache Web Server using Helm Chart
+## Deploying Nginx Web Server using Helm Chart
 Use the following resource block to deploy the Apache web server:
 ```hcl
 resource "helm_release" "apache" {
@@ -84,9 +84,8 @@ The values.yaml file specifies:
 
 ```hcl
 image:
-  registry: docker.io
-  repository: bitnami/apache-exporter
-  tag: 1.0.9-debian-12-r16
+  repository: nginx
+  tag: 1.12.1
   digest: ""
   pullPolicy: IfNotPresent
 
@@ -118,7 +117,7 @@ ingress:
 These variables are used in the Terraform configuration to set up DNS records related to the Apache web server deployment. The variables construct a fully qualified domain name (FQDN) by concatenating the string "apache." with the hostname of the Route 53 hosted zone.
 ```hcl
 locals {
-  domain_name = "apache.${local.dns_name}"
+  domain_name = "nginx.${local.dns_name}"
   dns_name    = replace(
     element(
       concat(data.aws_route53_zone.ingress.*.name, [""]),
@@ -139,5 +138,6 @@ data "aws_route53_zone" "ingress" {
   }
 }
 ```
+![Nginx web server on EKS](https://drive.google.com/file/d/1AH2EgeZQR9WLqUCYOmoL9I50uv9lAR_K/view?usp=sharing)
 ## Conclusion
 We have successfully deployed an Apache web server helm chart onto Elastic Kubernetes Services EKS Cluster. This application is exposed through the custom domain name apache.cloudresolve.net with external-dns automatically updating the route53 dns record. This application is being exposed through AWS ALB which  terminates SSL connections using the specified certificate and routes incoming requests to the appropriate backend service.
