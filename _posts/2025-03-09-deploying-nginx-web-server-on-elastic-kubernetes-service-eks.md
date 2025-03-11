@@ -1,6 +1,6 @@
-# Deploying Nginx Web Server on Kubernetes
+# Deploying Nginx Web Server on Kubernetes EKS
 
-This guide outlines the steps to deploy the nginx web server application using Helm and Terraform in a Kubernetes environment leveraging the external DNS for route53 records, AWS application Load balancer for exposing the server to the external world.
+This guide outlines the steps to deploy the nginx web server application using Helm and Terraform in EKS environment leveraging the external DNS for route53 records and AWS application Load balancer for exposing the server to the external world.
 
 ## Table of Contents
 - [Prerequisites](#prerequisites)
@@ -14,7 +14,7 @@ This guide outlines the steps to deploy the nginx web server application using H
 ## Prerequisites
 
 - **Terraform**: Terraform is needed to automate deployments.
-- **Helm**: Helm must be installed (version ~> 3.0).
+- **Helm**: Helm must be installed.
 - **AWS EKS Cluster**: An already existing EKS cluster all the necessary components.
 - **AWS CLI**: AWS CLI configured and IAM user with appropriate permissions to interact with the EKS Cluster.
 
@@ -71,7 +71,7 @@ resource "helm_release" "apache" {
 The values.yaml file specifies:
 
 - **Image repository** The container image repository that should be used.
-- **Image tag** The tag of the image (e.g., 'latest') that should be used.
+- **Image tag** The tag of the image that should be used.
 - **Image pull repository** The image pull policy to determine when the image will be pulled.
 - **number of replicas** The number of replica pods that should be deployed and maintained at any given point in time.
 - **Liveness probe** Liveness probes to indicate when the container needs to be restarted to recover.
@@ -114,7 +114,7 @@ ingress:
   hosts: ${hosts}
 ```
 ## Defining Ingress Domain variable settings
-These variables are used in the Terraform configuration to set up DNS records related to the Apache web server deployment. The variables construct a fully qualified domain name (FQDN) by concatenating the string "apache." with the hostname of the Route 53 hosted zone.
+These variables are used in the Terraform configuration to set up DNS records related to the Nginx web server deployment. The variables construct a fully qualified domain name (FQDN) by concatenating the string "nginx." with the hostname of the Route 53 hosted zone.
 ```hcl
 locals {
   domain_name = "nginx.${local.dns_name}"
@@ -151,4 +151,4 @@ kubectl logs nginx-6c74d84d49-sxqmm    -n kube-system
 
 
 ## Conclusion
-We have successfully deployed the Nginx web server helm chart on Elastic Kubernetes Services EKS Cluster. This application is mapped the custom domain name nginx.cloudresolve.net with external-dns automatically updating the route53 DNS records. This application is being exposed through AWS ALB which  terminates SSL connections using the specified certificate and routes incoming requests to the appropriate backend service.
+We have successfully deployed the Nginx web server helm chart on Elastic Kubernetes Services EKS Cluster. This application is mapped the custom domain name nginx.cloudresolve.net with external-dns automatically updating the route53 DNS records. This application is being exposed through AWS ALB which terminates SSL connections using the specified certificate and routes incoming requests to the appropriate backend service.
