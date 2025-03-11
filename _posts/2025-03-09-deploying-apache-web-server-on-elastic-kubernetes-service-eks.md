@@ -138,8 +138,15 @@ data "aws_route53_zone" "ingress" {
   }
 }
 ```
+The following snapshots shows the working server in EKS
+```hcl
+kubectl logs nginx-6c74d84d49-sxqmm    -n kube-system
+10.0.1.251 - - [11/Mar/2025:05:49:22 +0000] "GET / HTTP/1.1" 200 612 "-" "kube-probe/1.31+" "-"
+10.0.1.251 - - [11/Mar/2025:05:49:27 +0000] "GET / HTTP/1.1" 200 612 "-" "kube-probe/1.31+" "-"
+10.0.1.251 - - [11/Mar/2025:05:49:27 +0000] "GET / HTTP/1.1" 200 612 "-" "kube-probe/1.31+" "-"
+```
 ![Nginx web server on EKS](https://drive.google.com/uc?export=view&id=1AH2EgeZQR9WLqUCYOmoL9I50uv9lAR_K)
 
 
 ## Conclusion
-We have successfully deployed an Apache web server helm chart onto Elastic Kubernetes Services EKS Cluster. This application is exposed through the custom domain name apache.cloudresolve.net with external-dns automatically updating the route53 dns record. This application is being exposed through AWS ALB which  terminates SSL connections using the specified certificate and routes incoming requests to the appropriate backend service.
+We have successfully deployed an Nginx web server helm chart onto Elastic Kubernetes Services EKS Cluster. This application is mapped the custom domain name nginx.cloudresolve.net with external-dns automatically updating the route53 dns records. This application is being exposed through AWS ALB which  terminates SSL connections using the specified certificate and routes incoming requests to the appropriate backend service.
