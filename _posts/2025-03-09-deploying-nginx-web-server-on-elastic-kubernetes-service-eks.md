@@ -51,7 +51,7 @@ Use the following resource block to deploy the Apache web server:
 resource "helm_release" "apache" {
   name       = var.application_name
   repository = "https://artifacthub.io"
-  chart      = "apache"
+  chart      = "nginx"
   version    = "11.3.4"
   namespace  = "kube-system"
 
