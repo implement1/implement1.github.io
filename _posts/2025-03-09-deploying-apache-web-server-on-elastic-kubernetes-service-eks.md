@@ -149,4 +149,4 @@ kubectl logs nginx-6c74d84d49-sxqmm    -n kube-system
 
 
 ## Conclusion
-We have successfully deployed an Nginx web server helm chart onto Elastic Kubernetes Services EKS Cluster. This application is mapped the custom domain name nginx.cloudresolve.net with external-dns automatically updating the route53 dns records. This application is being exposed through AWS ALB which  terminates SSL connections using the specified certificate and routes incoming requests to the appropriate backend service.
+We have successfully deployed the Nginx web server helm chart on Elastic Kubernetes Services EKS Cluster. This application is mapped the custom domain name nginx.cloudresolve.net with external-dns automatically updating the route53 DNS records. This application is being exposed through AWS ALB which  terminates SSL connections using the specified certificate and routes incoming requests to the appropriate backend service.
