@@ -1,6 +1,6 @@
-# Deploying Nginx Web Server on Kubernetes using Helm
+# Deploying Nginx Web Server on Kubernetes
 
-This guide outlines the steps to deploy a Dockerized Apache web server application using Helm and Terraform in a Kubernetes environment.
+This guide outlines the steps to deploy the nginx web server application using Helm and Terraform in a Kubernetes environment leveraging the external DNS for route53 records, AWS application Load balancer for exposing the server to the external world.
 
 ## Table of Contents
 - [Prerequisites](#prerequisites)
