@@ -138,7 +138,8 @@ data "aws_route53_zone" "ingress" {
   }
 }
 ```
-![Nginx web server on EKS](https://drive.google.com/file/d/1AH2EgeZQR9WLqUCYOmoL9I50uv9lAR_K/preview)
+![Nginx web server on EKS](https://drive.google.com/uc?export=view&id=1AH2EgeZQR9WLqUCYOmoL9I50uv9lAR_K)
+
 
 ## Conclusion
 We have successfully deployed an Apache web server helm chart onto Elastic Kubernetes Services EKS Cluster. This application is exposed through the custom domain name apache.cloudresolve.net with external-dns automatically updating the route53 dns record. This application is being exposed through AWS ALB which  terminates SSL connections using the specified certificate and routes incoming requests to the appropriate backend service.
