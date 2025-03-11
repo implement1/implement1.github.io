@@ -138,7 +138,7 @@ data "aws_route53_zone" "ingress" {
   }
 }
 ```
-The following snapshots shows the working server in EKS
+The following images show the working server in EKS
 
 ```hcl
 kubectl logs nginx-6c74d84d49-sxqmm    -n kube-system
