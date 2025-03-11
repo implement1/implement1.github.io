@@ -6,7 +6,7 @@ This guide outlines the steps to deploy the nginx web server application using H
 - [Prerequisites](#prerequisites)
 - [Setup Terraform Connection](#setup-terraform-connection)
 - [Configure Helm Connection](#configure-helm-connection)
-- [Deploy Nginx Server using Helm Chart](#deploy-apache-web-server-using-helm-chart)
+- [Deploy Nginx Server using Helm Chart](#deploy-nginx-web-server-using-helm-chart)
 - [Manage Hosted Zones for Ingress Domain](#manage-hosted-zones-for-ingress-domain)
 - [Route 53 Hosted Zone Configuration](#route-53-hosted-zone-configuration)
 - [Conclusion](#conclusion)
@@ -46,9 +46,9 @@ provider "helm" {
 }
 ```
 ## Deploying Nginx Web Server using Helm Chart
-Use the following resource block to deploy the Apache web server:
+Use the following resource block to deploy the Nginx web server:
 ```hcl
-resource "helm_release" "apache" {
+resource "helm_release" "nginx" {
   name       = var.application_name
   repository = "https://artifacthub.io"
   chart      = "nginx"
