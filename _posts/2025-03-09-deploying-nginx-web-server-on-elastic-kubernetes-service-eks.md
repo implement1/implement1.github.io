@@ -145,7 +145,6 @@ kubectl logs nginx-6c74d84d49-sxqmm    -n kube-system
 10.0.1.251 - - [11/Mar/2025:05:49:27 +0000] "GET / HTTP/1.1" 200 612 "-" "kube-probe/1.31+" "-"
 10.0.1.251 - - [11/Mar/2025:05:49:27 +0000] "GET / HTTP/1.1" 200 612 "-" "kube-probe/1.31+" "-"
 ```
-![Alt Nginx web server on EKS](https://drive.google.com/uc?export=view&id=1AH2EgeZQR9WLqUCYOmoL9I50uv9lAR_K)
 ![](/img/kubernetes/nginx.png)
 
 ## Conclusion
