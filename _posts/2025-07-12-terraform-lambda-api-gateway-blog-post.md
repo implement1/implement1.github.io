@@ -281,19 +281,18 @@ These outputs can be used to create CloudWatch dashboards, alarms, and integrate
 
 ## Benefits of This Approach
 
-### 1. **Reusability**
+#### **Reusability**
 This can be used across multiple projects and environments with minimal configuration changes.
-
-### 2. **Scalability**
+#### **Scalability**
 Adding new endpoints is as simple as adding entries to the `route_config` map.
 
-### 3. **Maintainability**
+#### **Maintainability**
 All infrastructure is defined in code, making it easy to version, review, and rollback.
 
-### 4. **Security**
+#### **Security**
 Built-in security best practices including proper IAM policies, encryption, and TLS configuration.
 
-### 5. **Cost Optimization**
+#### **Cost Optimization**
 Uses HTTP API instead of REST API for cost savings.
 
 ## Considerations and Limitations
