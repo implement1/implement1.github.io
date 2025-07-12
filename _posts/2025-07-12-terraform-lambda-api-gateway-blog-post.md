@@ -2,23 +2,22 @@
 
 Combining AWS Lambda with API Gateway has become the gold standard for building scalable HTTP APIs. We'll explore a Terraform configuration that demonstrates how to build production-ready serverless APIs with proper logging, monitoring, and security controls.
 
-## The Challenge: Beyond Basic Serverless
-
+## The Challenge: Beyond Basic Serverless<br> 
 While AWS makes it relatively straightforward to create a simple Lambda function and API Gateway, production deployments require additional considerations:
 
-- **Comprehensive logging and monitoring**
-- **Custom domain support with SSL certificates**
-- **CORS configuration for web applications**
-- **Proper IAM policies and security controls**
-- **Routing for multiple endpoints**
-- **Infrastructure as Code for reproducibility**
+  - **Comprehensive logging and monitoring**
+  - **Custom domain support with SSL certificates**
+  - **CORS configuration for web applications**
+  - **Proper IAM policies and security controls**
+  - **Routing for multiple endpoints**
+  - **Infrastructure as Code for reproducibility**
 
 ## Architecture Overview
 
 The configuration creates a complete serverless HTTP API infrastructure using these key components:
 
 ```
-Internet → Route 53 (optional) → API Gateway V2 → Lambda Functions → CloudWatch Logs
+Internet → Route 53 → API Gateway V2 → Lambda Functions → CloudWatch Logs
 ```
 
 ### Core Components
