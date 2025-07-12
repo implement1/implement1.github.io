@@ -1,4 +1,4 @@
-# Building Production-Ready HTTP APIs with Terraform, AWS Lambda and API Gateway Integration
+# Building Production-Ready HTTP APIs with Terraform, AWS Lambda and API Gateway
 
 Combining AWS Lambda with API Gateway has become the gold standard for building scalable HTTP APIs. We'll explore a Terraform configuration that demonstrates how to build production-ready serverless APIs with proper logging, monitoring, and security controls.
 
@@ -18,9 +18,7 @@ While AWS makes it relatively straightforward to create a simple Lambda function
 The configuration creates a complete serverless HTTP API infrastructure using these key components:
 
 ```
-Internet → Route 53 (optional) → API Gateway V2 → Lambda Functions
-                                        ↓
-                                CloudWatch Logs
+Internet → Route 53 (optional) → API Gateway V2 → Lambda Functions → CloudWatch Logs
 ```
 
 ### Core Components
