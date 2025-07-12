@@ -307,7 +307,5 @@ API Gateway has a 10MB payload limit. For larger payloads, using presigned URLs 
 API Gateway has a 30-second timeout limit. For longer-running operations, asynchronous processing patterns is advised.
 
 ## Conclusion
-
 This post demonstrates how to build production-ready serverless APIs that go beyond basic tutorials. By combining AWS Lambda with API Gateway V2, proper logging, custom domains, and security controls, we can create maintainable APIs that are ready for production workloads.
-
-This approach makes it easy to standardize API deployment across organizations while maintaining the flexibility to customize for specific use cases. This pattern provides a solid foundation for serverless development when building simple REST APIs or complex microservices architectures.
+This approach makes it easy to standardize API deployment across organizations while maintaining the flexibility to customize for specific use cases. This pattern provides a solid foundation for serverless development when building simple REST APIs and complex microservices architectures.
