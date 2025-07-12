@@ -297,13 +297,13 @@ Uses HTTP API instead of REST API for cost savings.
 
 ## Considerations and Limitations
 
-### Cold Starts
+#### **Cold Starts**
 Lambda functions may experience cold starts. Consider using provisioned concurrency for critical endpoints.
 
-### Payload Size Limits
+#### **Payload Size Limits**
 API Gateway has a 10MB payload limit. For larger payloads, using presigned URLs for direct S3 uploads is a better choice.
 
-### Timeout Limits
+#### **Timeout Limits**
 API Gateway has a 30-second timeout limit. For longer-running operations, asynchronous processing patterns is advised.
 
 ## Conclusion
