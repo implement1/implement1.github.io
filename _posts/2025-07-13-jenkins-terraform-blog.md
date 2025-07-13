@@ -94,7 +94,7 @@ resource "aws_ebs_volume" "jenkins_data" {
 Both root and additional EBS volumes implement encryption by default, ensuring data protection for Jenkins configurations, build artifacts, and logs.
 
 #### SSL/TLS Configuration
-The implementation supports modern SSL policies with configurable certificate management:
+The implementation supports SSL policies with configurable certificate management:
 - **Default SSL Policy**: ELBSecurityPolicy-TLS-1-1-2017-01
 - **ACM Integration**: Automatic certificate validation and renewal
 - **HTTPS Redirection**: Optional HTTP to HTTPS traffic redirection
