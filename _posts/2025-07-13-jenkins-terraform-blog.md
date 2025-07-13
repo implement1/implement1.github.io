@@ -119,7 +119,7 @@ The Auto Scaling Group monitors instance health through ELB health checks and au
 
 ## Configuration Management
 
-The implementation provides extensive customization through 64 configurable variables covering all aspects of the deployment:
+The implementation provides extensive customization through configurable variables covering all aspects of the deployment:
 
 #### Infrastructure Variables
 ```hcl
