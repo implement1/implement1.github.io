@@ -121,7 +121,7 @@ The Auto Scaling Group monitors instance health through ELB health checks and au
 
 The implementation provides extensive customization through configurable variables covering all aspects of the deployment:
 
-#### Infrastructure Variables
+#### Infrastructure Variables Examples
 ```hcl
 variable "instance_type" {
   description = "The Jenkins server instance type"
