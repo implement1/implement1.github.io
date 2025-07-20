@@ -235,7 +235,7 @@ resource "aws_db_instance" "main" {
 }
 ```
 
-#### Recovery Capabilities
+### Recovery Capabilities
 - **Automated Backups**: Configurable retention periods up to 35 days
 - **Point-in-Time Recovery**: Restore to any point within backup retention period
 - **Cross-Region Backup**: Foundation for disaster recovery across regions
