@@ -9,18 +9,17 @@ The module follows a modular architecture with clear separation of concerns:
 ```
 eks-cluster/
 ├── modules/
-│   ├── cluster-control-plane/      # EKS control plane
-│   ├── cluster-managed-workers/    # Managed node groups
-│   ├── cluster-workers/            # Self-managed workers
-│   ├── alb-ingress-controller/     # ALB integration
-│   ├── cluster-autoscaler/         # Cluster autoscaling
-│   └── vpc-tags/                   # VPC tagging
+│   ├── control-plane/      # EKS control plane
+│   ├── managed-workers/    # Managed node groups
+│   ├── ingress-controller/ # ALB integration
+│   ├── autoscaler/         # Cluster autoscaling
+│   └── tags/               # VPC tagging
 └── use-cases/
     ├── managed-workers/
     └── support-services/
 ```
 
-This design allows you to compose exactly the components needed for specific use case.
+This design allows for flexble deployment of components needed for a specific use case.
 
 ## Multi-Environment EKS Deployment
 
@@ -60,48 +59,49 @@ module "vpc" {
   vpc_name   = var.vpc_name
   aws_region = var.aws_region
   
-  custom_tags                            = module.vpc_tags.vpc_eks_tags
-  public_subnet_custom_tags              = module.vpc_tags.vpc_public_subnet_eks_tags
-  private_app_subnet_custom_tags         = module.vpc_tags.vpc_private_app_subnet_eks_tags
-  private_persistence_subnet_custom_tags module.vpc_tags.vpc_private_persistence_subnet_eks_tags
+  custom_tags                 = module.tags.vpc_eks_tags
+  public_subnet_tags          = module.tags.vpc_public_subnet_tags
+  private_subnet_tags         = module.tags.vpc_private_subnet_tags
+  database_subnet_tags        = module.tags.vpc_database_subnet_tags
   
   cidr_block       = "10.0.0.0/18"
-  num_nat_gateways = 1
+  nat_gateways = 1
 }
 
 # EKS VPC tags
-module "vpc_tags" {
-  source = "modules/vpc-tags"
-  eks_cluster_names = [var.eks_cluster_name]
+module "tags" {
+  source = "modules/tags"
+  cluster_names = [var.cluster_name]
+}
 
 # EKS Control Plane
-module "eks_cluster" {
+module "cluster" {
   source       = "eks/modules/control-plane"
-  cluster_name = var.eks_cluster_name
+  cluster_name = var.cluster_name
   
   vpc_id                       = module.vpc.vpc_id
-  vpc_control_plane_subnet_ids = local.usable_subnet_ids
+  control_plane_subnet_ids = local.usable_subnet_ids
   
-  kubernetes_version           = var.kubernetes_version
-  kubectl_config_path         = var.kubectl_config_path
-  endpoint_public_access      = var.endpoint_public_access
-  endpoint_public_access_cidrs = var.endpoint_public_access_cidrs
-  enabled_cluster_log_types   = ["api"]
+  version           = var.kubernetes_version
+  config_path         = var.kubectl_config_path
+  public_access      = var.endpoint_public_access
+  public_access_cidrs = var.endpoint_public_access_cidrs
+  cluster_log_types   = ["api"]
   
   # CNI optimization for high-density workloads
-  vpc_cni_enable_prefix_delegation = var.vpc_cni_enable_prefix_delegation
-  vpc_cni_warm_ip_target          = var.vpc_cni_warm_ip_target
-  vpc_cni_minimum_ip_target       = var.vpc_cni_minimum_ip_target
+  cni_prefix_delegation = var.cni_prefix_delegation
+  cni_warm_ip_target          = var.cni_warm_ip_target
+  cni_minimum_ip_target       = var.cni_minimum_ip_target
   
   # EKS Add-ons
-  enable_eks_addons = var.enable_eks_addons
+  eks_addons_on = var.eks_addons_on
   eks_addons        = var.eks_addons
 }
 
 # Managed Worker Node
 module "workers" {
   source       = "eks/modules/workers"
-  cluster_name = module.eks_cluster.eks_cluster_name
+  cluster_name = module.cluster.cluster_name
   
   node_group_configurations = {
     group1 = {
@@ -113,7 +113,7 @@ module "workers" {
     }
   }
   
-  cluster_instance_keypair_name = var.cluster_instance_keypair_name
+  cluster_keypair_name = var.cluster_keypair_name
 }
 ```
 
@@ -151,11 +151,11 @@ variable "prefix_delegation" {
 }
 ```
 
-#### 2. **Security by Design**
+### Security by Design
 ```hcl
 # Security group with restricted access
 resource "aws_security_group_rule" "inbound_api_access" {
-  count             = length(var.endpoint_private_access_cidrs) > 0 ? 1 : 0
+  count             = length(var.private_access_cidrs) > 0 ? 1 : 0
   type              = "ingress"
   from_port         = 443
   to_port           = 443
@@ -172,15 +172,15 @@ resource "aws_iam_role" "eks" {
 }
 ```
 
-## Production Deployment Walkthrough
+### Production Deployment
 
-### Step 1: Environment Configuration
+#### Step 1: Environment Configuration
 
 ```bash
 # Development environment
 cat > environments/dev/terraform.tfvars <<EOF
 aws_region             = "us-west-2"
-eks_cluster_name      = "dev-eks-cluster"
+cluster_name      = "dev-eks-cluster"
 vpc_name              = "dev-vpc"
 kubernetes_version    = "1.32"
 endpoint_public_access = true
@@ -197,12 +197,12 @@ EOF
 # Production environment  
 cat > environments/prod/terraform.tfvars <<EOF
 aws_region             = "us-west-2"
-eks_cluster_name      = "prod-eks-cluster"
+cluster_name      = "prod-eks-cluster"
 vpc_name              = "prod-vpc"
 kubernetes_version    = "1.29"
 endpoint_public_access = false
-vpc_cni_enable_prefix_delegation = true
-enable_eks_addons     = true
+cni_prefix_delegation = true
+eks_addons_on     = true
 node_group_configurations = {
   system_nodes = {
     desired_size  = 3
@@ -222,7 +222,7 @@ node_group_configurations = {
 EOF
 ```
 
-### Step 2: Deployment Pipeline Integration
+#### Step 2: Deployment Pipeline Integration
 
 ```yaml
 # .github/workflows/eks-deploy.yml
@@ -271,12 +271,12 @@ jobs:
         terraform apply -auto-approve -var-file="environments/${{ matrix.environment }}/terraform.tfvars"
 ```
 
-### Step 3: Post-Deployment Configuration
+#### Step 3: Post-Deployment Configuration
 
 ```bash
 # Configure kubectl
-EKS_CLUSTER_ARN=$(terraform output -raw eks_cluster_arn)
-aws eks update-kubeconfig --region us-west-2 --name $(terraform output -raw eks_cluster_name)
+EKS_ARN=$(terraform output -raw cluster_arn)
+aws eks update-kubeconfig --region us-west-2 --name $(terraform output -raw cluster_name)
 
 # Verify cluster health
 kubectl get nodes
@@ -286,9 +286,9 @@ kubectl get pods -A
 kubectl apply -f manifests/monitoring/
 ```
 
-## Advanced Features for Enterprise Environments
+### Advanced Features for Enterprise Environments
 
-### 1. **Multi-Tenancy Support**
+#### 1. **Multi-Tenancy Support**
 
 ```hcl
 # Dedicated node groups for different workloads
@@ -320,7 +320,7 @@ node_group_configurations = {
 }
 ```
 
-### 2. **Cost Optimization with Spot Instances**
+#### 2. **Cost Optimization with Spot Instances**
 
 ```hcl
 # Mixed instance types with Spot instances
@@ -339,7 +339,7 @@ launch_template_config = {
 }
 ```
 
-### 3. **GitOps Integration**
+#### 3. **GitOps Integration**
 
 ```bash
 # Install ArgoCD on the cluster
@@ -369,9 +369,9 @@ spec:
 EOF
 ```
 
-## Monitoring and Observability
+### Monitoring and Observability
 
-### CloudWatch Integration
+#### CloudWatch Integration
 
 ```hcl
 # Enable logging
@@ -388,7 +388,7 @@ cloudwatch_log_group_retention_in_days = 30
 cloudwatch_log_group_kms_key_id        = aws_kms_key.logs.arn
 ```
 
-### Prometheus and Grafana Setup
+#### Prometheus and Grafana Setup
 
 ```bash
 # Install monitoring stack
@@ -399,9 +399,9 @@ helm install prometheus prometheus-community/kube-prometheus-stack \
   --set grafana.service.type=LoadBalancer
 ```
 
-## Disaster Recovery and Backup
+### Disaster Recovery and Backup
 
-### EKS Cluster Backup Strategy
+#### EKS Cluster Backup Strategy
 
 ```hcl
 # Backup IAM policy for Velero
@@ -425,9 +425,9 @@ resource "aws_iam_policy" "velero_backup" {
 }
 ```
 
-## Performance Tuning and Best Practices
+### Performance Tuning and Best Practices
 
-### 1. **Node Optimization**
+#### 1. **Node Optimization**
 
 ```hcl
 # Custom launch template for performance tuning
@@ -459,7 +459,7 @@ resource "aws_launch_template" "optimized_nodes" {
 }
 ```
 
-### 2. **CNI Configuration for High Density**
+#### 2. **CNI Configuration for High Density**
 
 ```hcl
 # Optimize VPC CNI for maximum pod density
@@ -468,9 +468,9 @@ vpc_cni_warm_ip_target          = 1
 vpc_cni_minimum_ip_target       = 1
 ```
 
-## Security Hardening
+### Security Hardening
 
-### 1. **Network Policies**
+#### 1. **Network Policies**
 
 ```yaml
 # Default deny network policy
@@ -486,7 +486,7 @@ spec:
   - Egress
 ```
 
-### 2. **Pod Security Standards**
+#### 2. **Pod Security Standards**
 
 ```yaml
 # Pod Security Policy
@@ -510,14 +510,14 @@ spec:
 
 ## Conclusion
 
-This setup provides a strong foundation for managing EKS clusters in production environments. Key takeaways:
+This setup provides a foundation for deploying EKS clusters in different environments. Key takeaways:
 
 1. **Modular Design**: Compose only the components you need
 2. **Security First**: Built-in security best practices and hardening
 3. **Operational Excellence**: Integrated monitoring, logging, and automation
 4. **Cost Optimization**: Support for Spot instances and right-sizing
-5. **CI/CD Integration**: GitOps-ready with automated deployment pipelines
+5. **CI/CD Integration**: GitOps with automated deployment pipelines
 
 This abstracts away the complexity of EKS cluster management while providing the flexibility needed for enterprise environments. Whether you're running a simple development cluster or a complex multi-tenant production environment, this module scales with your needs.
 
-By leveraging this deployment pattern, your team can focus on what matters most: delivering value through your applications, while the infrastructure layer remains reliable, secure, and scalable.
+This deployment pattern enables teams to focus on delivering value, while the infrastructure layer remains secure and scalable.
