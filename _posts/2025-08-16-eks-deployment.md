@@ -288,7 +288,7 @@ kubectl apply -f manifests/monitoring/
 
 ### Advanced Features for Enterprise Environments
 
-#### 1. **Multi-Tenancy Support**
+#### 1. Multi-Tenancy Support
 
 ```hcl
 # Dedicated node groups for different workloads
@@ -320,7 +320,7 @@ node_group_configurations = {
 }
 ```
 
-#### 2. **Cost Optimization with Spot Instances**
+#### 2. Cost Optimization with Spot Instances
 
 ```hcl
 # Mixed instance types with Spot instances
@@ -339,7 +339,7 @@ launch_template_config = {
 }
 ```
 
-#### 3. **GitOps Integration**
+#### 3. GitOps Integration
 
 ```bash
 # Install ArgoCD on the cluster
@@ -427,7 +427,7 @@ resource "aws_iam_policy" "velero_backup" {
 
 ### Performance Tuning and Best Practices
 
-#### 1. **Node Optimization**
+#### 1. Node Optimization
 
 ```hcl
 # Custom launch template for performance tuning
@@ -459,7 +459,7 @@ resource "aws_launch_template" "optimized_nodes" {
 }
 ```
 
-#### 2. **CNI Configuration for High Density**
+#### 2. CNI Configuration for High Density
 
 ```hcl
 # Optimize VPC CNI for maximum pod density
@@ -470,7 +470,7 @@ vpc_cni_minimum_ip_target       = 1
 
 ### Security Hardening
 
-#### 1. **Network Policies**
+#### 1. Network Policies
 
 ```yaml
 # Default deny network policy
@@ -486,7 +486,7 @@ spec:
   - Egress
 ```
 
-#### 2. **Pod Security Standards**
+#### 2. Pod Security Standards
 
 ```yaml
 # Pod Security Policy
