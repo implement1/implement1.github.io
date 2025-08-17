@@ -1,7 +1,7 @@
 # Enterprise AWS EKS Clusters Deployments
 One of the most critical infrastructure components to manage is Amazon Elastic Kubernetes Service (EKS). Let's see how to streamline EKS cluster provisioning while following enterprise best practices.
 
-## Module Architecture Overview
+## Architecture Overview
 
 The module follows a modular architecture with clear separation of concerns:
 
