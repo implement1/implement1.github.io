@@ -2,20 +2,20 @@
 
 Countless production outages are caused by lack of testing: **infrastructure that isn't tested is broken until proven otherwise**.
 
-Managing infrastructures using Terraform modules may seem to work after a successful `terraform apply` but more often than not, it is risky without proper testing. Everything may look clean on paper—modular code, proper variable definitions, even documentation. But when you start implementing automated testing, you may find:
+Managing infrastructures using Terraform may seem to work after a successful `terraform apply` but more often than not, it is risky without proper testing. Automated testing often uncovers hidden issues that can cause production outages. Some of the issues I discovered in the lambda module are:
 
 - **"Working" modules** with configuration drift issues
-- **Security groups** misconfigured in environments
+- **Security groups** misconfigurations
 - **Lambda functions** failing to deploy properly in specific VPC configurations
 - **Environment variables** corrupted during deployments
 
-To ensure a reliable infrastructure code, we need a systematic approach to infrastructure testing.
+To ensure a reliable infrastructure code, a comprehensive testing strategy is required.
 
 ## Implementation
 
 Here is an example of a GitHub Actions workflow that automatically tests every component of the infrastructure code.
 
-### 1. Multi-Dimensional Test Strategy
+### Multi-Dimensional Test Strategy
 
 The [GitHub Actions workflow](/.github/workflows/terratest.yml) implements four testing categories:
 
@@ -31,7 +31,7 @@ strategy:
 
 Each test runs in parallel to reduce feedback loop.
 
-### 2. AWS Resource Testing
+### AWS Resource Testing
 
 Unlike synthetic tests, this approach creates **AWS resources** during testing. Here's an example of the implementation:
 
@@ -67,7 +67,7 @@ func TestLambdaBasicPython(t *testing.T) {
 }
 ```
 
-### 3. Test Coverage
+### Test Coverage
 
 The testing framework covers the following aspects for demo purposes:
 
@@ -78,9 +78,9 @@ The testing framework covers the following aspects for demo purposes:
 - **Environment variables**: Do configurations pass through properly?
 - **Cleanup procedures**: Are resources properly destroyed?
 
-### 4. Resource Management
+### Resource Management
 
-Every test includes automatic cleanup:
+Every test should include automatic cleanup:
 
 ```yaml
 cleanup:
