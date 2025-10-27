@@ -2,9 +2,9 @@
 
 Countless production outages are caused by lack of testing: **infrastructure that isn't tested is broken until proven otherwise**.
 
-Managing infrastructures using Terraform may seem to work after a successful `terraform apply` but more often than not, it is risky without proper testing. Automated testing often uncovers hidden issues that can cause production outages. Some of the issues I discovered in the lambda module are:
+Managing infrastructures using Terraform may seem to work after a successful `terraform apply` but more often than not, it is risky without proper testing. Automated testing often uncovers hidden issues that can cause production outages. Some of the issues I discovered during testing a sample lambda module are:
 
-- **"Working" modules** with configuration drift issues
+- **modules** with configuration drift issues
 - **Security groups** misconfigurations
 - **Lambda functions** failing to deploy properly in specific VPC configurations
 - **Environment variables** corrupted during deployments
@@ -13,23 +13,21 @@ To ensure a reliable infrastructure code, a comprehensive testing strategy is re
 
 ## Implementation
 
-Here is an example of a GitHub Actions workflow that automatically tests every component of the infrastructure code.
-
-### Multi-Dimensional Test Strategy
-
-The [GitHub Actions workflow](/.github/workflows/terratest.yml) implements four testing categories:
+Here is an excerpt of a GitHub Actions workflow that automatically tests every component of the infrastructure code.
+The GitHub Actions workflow implements 3 testing categories and each test runs in parallel to reduce feedback loop.
 
 ```yaml
-strategy:
-  matrix:
-    test_case:
-      - TestLambdaBasicPython
-      - TestLambdaVPCIntegration
-      - TestLambdaVPCWithMultipleSubnets
-      - TestLambdaVPCSecurityGroupRules
+name: VPC Lambda Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.should_run_tests == 'true' && (github.event.inputs.test_category == 'all' || github.event.inputs.test_category == 'vpc' || github.event.inputs.test_category == '')
+    strategy:
+      matrix:
+        test_case:
+          - TestLambdaVPCIntegration
+          - TestLambdaVPCWithMultipleSubnets
+          - TestLambdaVPCSecurityGroupRules      
 ```
-
-Each test runs in parallel to reduce feedback loop.
 
 ### AWS Resource Testing
 
@@ -105,6 +103,8 @@ No more crossing fingers during deployments means less time spent debugging and 
 - **Cost Optimisation**
 Catching security misconfigurations to prevent breaches is now automated.
 Significant cost optimization by catching issues in testing.
+![lambda-pipes](/Users/merciful/Pictures/lambdapipes1.png)
+
 
 ## Conclusion
 Like any other code, Infrastructure code that is not tested is bound to have bugs. The question isn't whether infrastructure code should be tested—it's whether we can afford not to. There's no going back once you experience the peace of mind that comes with truly tested infrastructure.
