@@ -2,8 +2,6 @@
 
 Countless production outages are caused by lack of testing: **infrastructure that isn't tested is broken until proven otherwise**.
 
-## The Wake-Up Call
-
 Managing infrastructures using Terraform modules may seem to work after a successful `terraform apply` but more often than not, it is risky without proper testing. Everything may look clean on paper—modular code, proper variable definitions, even documentation. But when you start implementing automated testing, you may find:
 
 - **"Working" modules** with configuration drift issues
@@ -19,7 +17,7 @@ Here is an example of a GitHub Actions workflow that automatically tests every c
 
 ### 1. Multi-Dimensional Test Strategy
 
-Our [GitHub Actions workflow](/.github/workflows/terratest.yml) implements five distinct testing categories:
+The [GitHub Actions workflow](/.github/workflows/terratest.yml) implements four testing categories:
 
 ```yaml
 strategy:
@@ -108,18 +106,5 @@ No more crossing fingers during deployments means less time spent debugging and 
 Catching security misconfigurations to prevent breaches is now automated.
 Significant cost optimization by catching issues in testing.
 
-## Getting Started
-
-1. **Start Small**: Begin with one critical module and write basic deployment tests
-2. **Implement Terratest**: Use the Go-based testing framewor
-3. **Create Test Fixtures**: Build simple examples that validate module's core functionality
-4. **Add GitHub Actions**: Automate everything with scheduled and PR-triggered runs
-5. **Expand Coverage**: Gradually add performance, security, and integration tests
-
 ## Conclusion
-
-In today's cloud-native world, **infrastructure code is just code**. And just like any other code, if it is not tested, we're shipping bugs to production.
-
-The question isn't whether infrastructure code should be tested—it's whether we can afford not to.
-
-Your future self (and your on-call rotation) will thank you for implementing automated infrastructure testing. There's no going back once you experience the peace of mind that comes with truly tested infrastructure.
+Like any other code, Infrastructure code that is not tested is bound to have bugs. The question isn't whether infrastructure code should be tested—it's whether we can afford not to. There's no going back once you experience the peace of mind that comes with truly tested infrastructure.
