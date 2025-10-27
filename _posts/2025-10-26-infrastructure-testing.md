@@ -1,7 +1,5 @@
 # Why Untested Infrastructure is Broken Infrastructure: A GitHub Actions Journey
 
-*"If you're not testing your infrastructure code, you're essentially pushing broken code to production and hoping for the best."*
-
 Countless production outages are caused by lack of testing: **infrastructure that isn't tested is broken until proven otherwise**.
 
 ## The Wake-Up Call
@@ -73,7 +71,7 @@ func TestLambdaBasicPython(t *testing.T) {
 
 ### 3. Test Coverage
 
-The testing framework covers the following critical aspects:
+The testing framework covers the following aspects for demo purposes:
 
 - **Basic functionality**: Does the infrastructure actually work?
 - **VPC integration**: Can Lambda functions communicate properly within VPCs?
@@ -110,9 +108,6 @@ No more crossing fingers during deployments means less time spent debugging and 
 Catching security misconfigurations to prevent breaches is now automated.
 Significant cost optimization by catching issues in testing.
 
-### 5. **Documentation That Never Lies**
-Your tests become living documentation of how your infrastructure should behave. Unlike comments, tests can't become outdated without breaking.
-
 ## Getting Started
 
 1. **Start Small**: Begin with one critical module and write basic deployment tests
@@ -128,7 +123,3 @@ In today's cloud-native world, **infrastructure code is just code**. And just li
 The question isn't whether infrastructure code should be tested—it's whether we can afford not to.
 
 Your future self (and your on-call rotation) will thank you for implementing automated infrastructure testing. There's no going back once you experience the peace of mind that comes with truly tested infrastructure.
-
----
-
-#DevOps #InfrastructureAsCode #Terraform #GitHubActions #AWS #CloudEngineering #SiteReliabilityEngineering #Testing #Automation
