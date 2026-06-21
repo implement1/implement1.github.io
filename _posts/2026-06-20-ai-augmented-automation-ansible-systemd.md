@@ -52,33 +52,33 @@ intent-to-playbook.py
 Translate a natural-language ops request into a validated Ansible playbook.
 """
 
-import json      # parse the LLM response and serialize metadata
-import re        # extract the JSON object from free-form model output
-from dataclasses import dataclass, field  # lightweight containers for tasks and plays
-from datetime import datetime  # timestamps for generated files and metadata
-from pathlib import Path  # cross-platform file paths
-from typing import Any  # generic type used for future extensibility
+import json
+import re
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
-import requests  # HTTP client for the Ollama API
-import yaml      # emit the final Ansible playbook
+import requests
+import yaml
 
 
+# A Step models a single Ansible task or handler. Both share the same
+# dictionary shape because handlers are just tasks triggered by a notify.
 @dataclass
 class Step:
-    """Represents a single Ansible task or handler."""
-    name: str                       # human-readable description
-    module: str                     # Ansible module name
-    args: dict                      # arguments passed to the module
-    register: str | None = None     # variable to capture the module result
-    when: str | None = None         # conditional expression
-    notify: list[str] = field(default_factory=list)  # handlers triggered on change
-    tags: list[str] = field(default_factory=list)    # selective execution tags
-    become: bool | None = None      # per-task privilege escalation
+    name: str
+    module: str
+    args: dict
+    register: str | None = None
+    when: str | None = None
+    notify: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    become: bool | None = None
 
     def to_dict(self) -> dict:
-        """Serialize this Step into the dictionary shape Ansible expects.
-        Only include optional keys when explicitly set so the YAML stays clean.
-        """
+        # Convert to Ansible's native task representation. Optional keys
+        # are omitted when unset so the generated YAML stays clean.
         step = {"name": self.name, self.module: self.args}
         if self.register:
             step["register"] = self.register
@@ -93,9 +93,10 @@ class Step:
         return step
 
 
+# A Play is the top-level container in an Ansible playbook. It holds the
+# inventory target, variables, ordered tasks, and the handlers they may trigger.
 @dataclass
 class Play:
-    """A single Ansible play: the top-level container in a playbook."""
     name: str
     hosts: str
     gather_facts: bool = True
@@ -106,9 +107,8 @@ class Play:
     tags: list[str] = field(default_factory=list)
 
     def to_yaml(self) -> str:
-        """Render this play as a YAML document that ansible-playbook can run.
-        Only add optional sections when they are non-empty to avoid noisy output.
-        """
+        # Render the play as YAML. Optional sections are skipped when empty
+        # to avoid a noisy playbook that reviewers must wade through.
         play = {
             "name": self.name,
             "hosts": self.hosts,
@@ -126,15 +126,18 @@ class Play:
         return yaml.dump([play], default_flow_style=False, sort_keys=False)
 
 
+# IntentToPlaybook is the main orchestrator. It asks the local LLM for a
+# draft, validates the response against Ansible best practices, and renders
+# the result into a YAML playbook ready for review.
 class IntentToPlaybook:
-    """Generates a draft Ansible play from plain English and validates it."""
-
     def __init__(self, model: str = "llama3.1:8b", base_url: str = "http://localhost:11434"):
         self.model = model
         self.api_url = f"{base_url}/api/generate"
 
     def _prompt(self) -> str:
-        """Return the system prompt that constrains the model to safe Ansible output."""
+        # The system prompt anchors the model. It forces the output to a
+        # known JSON schema and forbids unsafe shortcuts such as direct
+        # service restarts or non-idempotent modules.
         return """You are a senior Ansible engineer. Produce a production-ready Ansible play as JSON.
 
 Rules:
@@ -174,11 +177,9 @@ Return JSON matching this shape:
 }"""
 
     def ask_llm(self, intent: str, hosts: str = "all") -> dict:
-        """Call the local LLM and parse the JSON it returns.
-
-        The model may emit explanatory text around the JSON, so we extract the
-        first complete JSON object using a regular expression.
-        """
+        # Send the user's intent to the model and parse the response. The
+        # model may wrap the JSON in prose, so the first full JSON object is
+        # extracted with a regex before being parsed.
         payload = f"{self._prompt()}\n\nIntent: {intent}\nHosts: {hosts}\n\nReturn only the JSON object."
         try:
             resp = requests.post(
@@ -205,12 +206,9 @@ Return JSON matching this shape:
             return {"error": f"Invalid JSON: {e}"}
 
     def lint(self, data: dict) -> tuple[bool, list[str]]:
-        """Validate the generated JSON against a small set of Ansible best practices.
-
-        Checks for required keys, missing task names, direct service restarts,
-        missing changed_when on command tasks, and handlers that are referenced
-        but not defined.
-        """
+        # Validate the model's output. This catches structural problems and
+        # common Ansible mistakes such as direct service restarts or missing
+        # changed_when clauses on command tasks.
         issues = []
 
         for key in ("playbook_name", "hosts", "tasks"):
@@ -234,6 +232,7 @@ Return JSON matching this shape:
             if module in {"command", "shell"} and "changed_when" not in task:
                 issues.append(f"Task '{task.get('name')}' needs changed_when")
 
+        # Every handler referenced by a notify must be defined somewhere.
         notified = set()
         for task in data.get("tasks", []):
             notified.update(task.get("notify", []))
@@ -246,10 +245,9 @@ Return JSON matching this shape:
         return (not issues), issues
 
     def build(self, data: dict, hosts: str) -> Play:
-        """Convert the validated JSON response into a Play object.
-        Both tasks and handlers share the same Step shape because handlers are
-        also tasks; they are only separated by when they are triggered.
-        """
+        # Transform the validated JSON into a Play object. Tasks are mapped
+        # into Step instances and handlers are stored separately so they can
+        # be rendered in the handlers section of the YAML.
         play = Play(
             name=data.get("playbook_name", "Generated play"),
             hosts=data.get("hosts", hosts),
@@ -282,7 +280,8 @@ Return JSON matching this shape:
         return play
 
     def run(self, intent: str, hosts: str = "webservers") -> tuple[Play | None, dict]:
-        """Run the full pipeline: generate, validate, and package metadata."""
+        # Orchestrate the full workflow: generate the JSON, lint it, build
+        # the Play object, and return metadata about the generation run.
         print(f"Generating playbook for: {intent}")
         data = self.ask_llm(intent, hosts)
         if "error" in data:
@@ -311,7 +310,9 @@ Return JSON matching this shape:
         return play, meta
 
     def save(self, play: Play, path: str | Path) -> None:
-        """Write the generated play to disk with a warning header for reviewers."""
+        # Persist the generated play to disk. A header is added to warn
+        # reviewers that the file is AI-generated and should be tested in
+        # check mode before running against production hosts.
         path = Path(path)
         header = (
             "# Generated by intent-to-playbook.py\n"
@@ -323,7 +324,8 @@ Return JSON matching this shape:
 
 
 if __name__ == "__main__":
-    # Example: a security patch workflow that must restart the web server only when needed.
+    # Example: a security patch workflow that restarts the web server only
+    # when the configuration actually changes, with rollback on failure.
     intent = """Ensure all web servers have the latest security updates installed.
     Verify nginx configuration is valid, then restart nginx only if the
     configuration file changed. Include rollback if nginx fails to start."""
