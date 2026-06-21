@@ -52,32 +52,33 @@ intent-to-playbook.py
 Translate a natural-language ops request into a validated Ansible playbook.
 """
 
-import json
-import re
-import sys
-from dataclasses import dataclass, field
-from datetime import datetime
-from pathlib import Path
-from typing import Any
+import json  # For parsing the LLM response and serializing metadata
+import re  # For extracting the JSON object from free-form model output
+from dataclasses import dataclass, field  # Lightweight containers for tasks and plays
+from datetime import datetime  # Timestamps for generated files and metadata
+from pathlib import Path  # Cross-platform file paths
+from typing import Any  # Generic type used for future extensibility
 
-import requests
-import yaml
+import requests  # HTTP client for the Ollama API
+import yaml  # For emitting the final Ansible playbook
 
 
 @dataclass
 class Step:
-    """One Ansible task or handler."""
-    name: str
-    module: str
-    args: dict
-    register: str | None = None
-    when: str | None = None
-    notify: list[str] = field(default_factory=list)
-    tags: list[str] = field(default_factory=list)
-    become: bool | None = None
+    """Represents a single Ansible task or handler."""
+    name: str  # Human-readable description shown during playbook execution
+    module: str  # Ansible module name, e.g. "package", "systemd", "template"
+    args: dict  # Arguments passed to the module
+    register: str | None = None  # Variable name to capture the module result
+    when: str | None = None  # Conditional expression for task execution
+    notify: list[str] = field(default_factory=list)  # Handler names triggered on change
+    tags: list[str] = field(default_factory=list)  # Selective execution tags
+    become: bool | None = None  # Per-task privilege escalation flag
 
     def to_dict(self) -> dict:
+        """Serialize this Step into the dictionary shape Ansible expects."""
         step = {"name": self.name, self.module: self.args}
+        # Only include optional keys when they are explicitly set so the YAML stays clean.
         if self.register:
             step["register"] = self.register
         if self.when:
@@ -93,23 +94,25 @@ class Step:
 
 @dataclass
 class Play:
-    """A single Ansible play."""
-    name: str
-    hosts: str
-    gather_facts: bool = True
-    become: bool = False
-    vars: dict = field(default_factory=dict)
-    tasks: list[Step] = field(default_factory=list)
-    handlers: list[Step] = field(default_factory=list)
-    tags: list[str] = field(default_factory=list)
+    """A single Ansible play: the top-level container in a playbook."""
+    name: str  # Play description
+    hosts: str  # Inventory pattern or group this play targets
+    gather_facts: bool = True  # Whether Ansible should collect facts before running tasks
+    become: bool = False  # Default privilege escalation for the whole play
+    vars: dict = field(default_factory=dict)  # Play-level variables
+    tasks: list[Step] = field(default_factory=list)  # Steps executed in order
+    handlers: list[Step] = field(default_factory=list)  # Steps triggered by notify
+    tags: list[str] = field(default_factory=list)  # Play-level tags
 
     def to_yaml(self) -> str:
+        """Render this play as a YAML document that ansible-playbook can run."""
         play = {
             "name": self.name,
             "hosts": self.hosts,
             "gather_facts": self.gather_facts,
             "become": self.become,
         }
+        # Only add optional sections when they are non-empty to avoid noisy output.
         if self.vars:
             play["vars"] = self.vars
         if self.tags:
@@ -122,13 +125,14 @@ class Play:
 
 
 class IntentToPlaybook:
-    """Ask a local LLM for a playbook, then lint and package it."""
+    """Generates a draft Ansible play from plain English and validates it."""
 
     def __init__(self, model: str = "llama3.1:8b", base_url: str = "http://localhost:11434"):
-        self.model = model
-        self.api_url = f"{base_url}/api/generate"
+        self.model = model  # Name of the Ollama model to query
+        self.api_url = f"{base_url}/api/generate"  # Ollama generation endpoint
 
     def _prompt(self) -> str:
+        """Return the system prompt that constrains the model to safe Ansible output."""
         return """You are a senior Ansible engineer. Produce a production-ready Ansible play as JSON.
 
 Rules:
@@ -168,7 +172,11 @@ Return JSON matching this shape:
 }"""
 
     def ask_llm(self, intent: str, hosts: str = "all") -> dict:
-        """Send the intent to the model and return parsed JSON."""
+        """Call the local LLM and parse the JSON it returns.
+
+        The model may emit explanatory text around the JSON, so we extract the
+        first complete JSON object using a regular expression.
+        """
         payload = f"{self._prompt()}\n\nIntent: {intent}\nHosts: {hosts}\n\nReturn only the JSON object."
         try:
             resp = requests.post(
@@ -195,8 +203,12 @@ Return JSON matching this shape:
             return {"error": f"Invalid JSON: {e}"}
 
     def lint(self, data: dict) -> tuple[bool, list[str]]:
-        """Check for common mistakes before the playbook is used."""
+        """Validate the generated JSON against a small set of Ansible best practices.
+
+        Returns (True, []) when no issues are found, otherwise (False, [issues]).
+        """
         issues = []
+        # Required top-level keys the model must provide.
         for key in ("playbook_name", "hosts", "tasks"):
             if key not in data:
                 issues.append(f"Missing top-level key: {key}")
@@ -209,15 +221,18 @@ Return JSON matching this shape:
 
             module = task.get("module", "")
             state = task.get("args", {}).get("state")
+            # Direct service restarts in a task usually mean the model forgot a handler.
             if module in {"systemd", "service"} and state in {"restarted", "reloaded"}:
                 if not task.get("when"):
                     issues.append(
                         f"Task '{task.get('name')}' restarts the service directly; use a handler"
                     )
 
+            # command and shell tasks are not idempotent by default.
             if module in {"command", "shell"} and "changed_when" not in task:
                 issues.append(f"Task '{task.get('name')}' needs changed_when")
 
+        # Every handler name referenced by notify must actually exist.
         notified = set()
         for task in data.get("tasks", []):
             notified.update(task.get("notify", []))
@@ -230,7 +245,7 @@ Return JSON matching this shape:
         return (not issues), issues
 
     def build(self, data: dict, hosts: str) -> Play:
-        """Turn validated JSON into a Play object."""
+        """Convert the validated JSON response into a Play object."""
         play = Play(
             name=data.get("playbook_name", "Generated play"),
             hosts=data.get("hosts", hosts),
@@ -239,6 +254,7 @@ Return JSON matching this shape:
             vars=data.get("vars", {}),
             tags=data.get("tags", []),
         )
+        # Map each task dictionary from the model into a Step instance.
         for item in data.get("tasks", []):
             play.tasks.append(
                 Step(
@@ -252,6 +268,7 @@ Return JSON matching this shape:
                     become=item.get("become"),
                 )
             )
+        # Handlers reuse the same Step structure because they are also tasks.
         for item in data.get("handlers", []):
             play.handlers.append(
                 Step(
@@ -263,7 +280,7 @@ Return JSON matching this shape:
         return play
 
     def run(self, intent: str, hosts: str = "webservers") -> tuple[Play | None, dict]:
-        """Full pipeline: generate, lint, and report."""
+        """Run the full pipeline: generate, validate, and package metadata."""
         print(f"Generating playbook for: {intent}")
         data = self.ask_llm(intent, hosts)
         if "error" in data:
@@ -292,7 +309,7 @@ Return JSON matching this shape:
         return play, meta
 
     def save(self, play: Play, path: str | Path) -> None:
-        """Write the play to disk with a safety header."""
+        """Write the generated play to disk with a warning header for reviewers."""
         path = Path(path)
         header = (
             "# Generated by intent-to-playbook.py\n"
@@ -304,6 +321,7 @@ Return JSON matching this shape:
 
 
 if __name__ == "__main__":
+    # Example: a security patch workflow that must restart the web server only when needed.
     intent = """Ensure all web servers have the latest security updates installed.
     Verify nginx configuration is valid, then restart nginx only if the
     configuration file changed. Include rollback if nginx fails to start."""
@@ -399,6 +417,4 @@ Track these metrics over time:
 
 ## Conclusion
 
-The real promise of AI in infrastructure work is not a robot that takes over the datacenter. It is a tool that removes the slowest part of the writing process: getting from a clear idea to a correct first draft. Ansible and systemd stay exactly where they are, doing the same jobs they already do well. What changes is how quickly the surrounding playbooks and unit files are produced, and how consistently they include the safety checks that separate a quick script from something you would run in production.
-
-Engineers who treat these generators as junior collaborators — accepting the draft, questioning the choices, and running the same validation they would apply to any human-written change — get the most out of them. The return is measured in more than hours: it shows up as backlogs that shrink, hardening that is applied by default, and teams that can spend more of their time on work that actually moves the platform forward.
+AI in infrastructure automation makes it fast and reliable to get from an idea to a correct first draft. This changes how quickly the playbooks and unit files are produced, and how consistently they include the safety checks that separate a quick script from production-ready code.
