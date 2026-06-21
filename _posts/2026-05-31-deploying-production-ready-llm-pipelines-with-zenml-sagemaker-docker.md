@@ -1,4 +1,6 @@
 
+![Architecture Overview — ZenML, ECR, SageMaker, S3, MongoDB, Qdrant](https://implement1.github.io/img/llm-pipelines/architecture-overview.png)
+
 Combining ZenML's orchestration with AWS SageMaker is one of several ways to run machine learning pipelines at scale. This post explores a deployment that takes an LLM system to the cloud — storage, orchestration, and compute — using serverless architecture.
 
 
@@ -13,8 +15,6 @@ Moving ML pipelines to the cloud so they can scale and serve clients requires se
 ### Architecture Overview
 
 The deployment ties four services together. The training and inference pipelines already run on AWS SageMaker, so connecting the remaining pieces puts the entire system in the cloud.
-
-![Architecture Overview — ZenML, ECR, SageMaker, S3, MongoDB, Qdrant](/img/llm-pipelines/architecture-overview.png)
 
 ```
 Local CLI / ZenML Dashboard → ZenML Cloud → ECR → SageMaker (EC2) → S3 / MongoDB / Qdrant

@@ -1,14 +1,14 @@
-# AI-Augmented Automation: Bridging Intent with Ansible, systemd, and Kubernetes
+# AI-Augmented Automation: Bridging Intent with Ansible and systemd
 
-![AI-Augmented Automation — Ansible playbooks, systemd unit files, and Kubernetes pods working together](https://implement1.github.io/img/ai-augmented-automation/hero.png)
+![AI-Augmented Automation — Ansible playbooks and systemd unit files working together](https://implement1.github.io/img/ai-augmented-automation/hero.png)
 
-The most valuable place for AI in a Linux engineering workflow is not as a replacement for trusted tools, but as an accelerant wrapped around them. Ansible, systemd, and container platforms already run production environments. The goal is to reduce the friction between intent and artifact: describe what you need, review what the model produces, and ship it through the same validation gates you already trust.
+The most valuable place for AI in a Linux engineering workflow is not as a replacement for trusted tools, but as an accelerant wrapped around them. Ansible and systemd already run production environments. The goal is to reduce the friction between intent and artifact: describe what you need, review what the model produces, and ship it through the same validation gates you already trust.
 
-This post looks at how AI-assisted generation fits into real operational tooling, what the productivity and financial returns look like, and how to keep the workflow safe.
+This post looks at how AI-assisted generation fits into Ansible and systemd workflows, what the productivity and financial returns look like, and how to keep the workflow safe. A companion post covers the same pattern for Kubernetes.
 
 ## Why AI Makes Sense Inside Existing Automation
 
-AI-assisted automation works best when it shortens the gap between an engineer's intent and a working, reviewable artifact. The tools on the ground stay the same — Ansible playbooks, systemd unit files, Kubernetes manifests — but the time to produce them drops.
+AI-assisted automation works best when it shortens the gap between an engineer's intent and a working, reviewable artifact. The tools on the ground stay the same — Ansible playbooks and systemd unit files — but the time to produce them drops.
 
 Teams that adopt this pattern typically report:
 
@@ -431,32 +431,6 @@ A unit file that takes thirty to sixty minutes to write manually can be drafted 
 
 Consistency matters more than encyclopedic knowledge. AI-generated units include the same baseline hardening every time, regardless of who requested the service or how busy the engineer was. That reduces attack surface without requiring every team member to memorize every systemd directive.
 
-## Kubernetes: Running AI Agents with Guardrails
-
-![Kubernetes AI assistant — pods monitoring workloads, analyzing logs, and recommending scaling](https://implement1.github.io/img/ai-augmented-automation/kubernetes-assistant.png)
-
-Container and Kubernetes workflows benefit from AI generation in two ways: producing manifests and running operational agents inside the cluster.
-
-For manifest generation, the model can produce Dockerfiles with optimized layers, Kubernetes manifests with resource quotas and security contexts, and deployment scripts that follow best practices. The bigger opportunity is deploying an AI assistant as a Kubernetes pod that reads cluster state, analyzes patterns, and recommends or executes remediation within defined boundaries.
-
-### What a Cluster Assistant Can Do
-
-- Monitor pod restart patterns across namespaces
-- Identify services with elevated error rates
-- Recommend right-sizing for CPU and memory requests
-- Generate HorizontalPodAutoscaler configs tuned to observed traffic
-
-These are tasks that scale poorly with headcount. In a fleet of fifty clusters, an average of ten incidents per week at two hours each adds up to over 1,000 hours of SRE time annually. Reducing investigation time to thirty minutes saves roughly 65 hours per week, or $65,000 annually in labor costs. Resource right-sizing recommendations can save substantially more in cloud infrastructure spend.
-
-### Governance Requirements
-
-Running an autonomous agent inside a cluster requires strict controls:
-
-- A narrowly scoped service account and RBAC role
-- Network policies that limit egress to required endpoints
-- Pod security policies or admission controllers enforcing baselines
-- Comprehensive audit logging of every action
-
 ## Readiness Checklist Before Production
 
 AI-generated automation is only as safe as the validation pipeline around it. Before allowing generated artifacts to run in production, assess the following areas:
@@ -464,7 +438,7 @@ AI-generated automation is only as safe as the validation pipeline around it. Be
 **Technical infrastructure**
 - Sufficient RAM for local model inference: 16 GB for 8B-parameter models, 32 GB for larger variants
 - Reliable connectivity to Ollama or external LLM APIs with appropriate timeouts
-- Python 3.9+, `requests`, `PyYAML`, and the Kubernetes Python client installed across operational environments
+- Python 3.9+, `requests`, and `PyYAML` installed across operational environments
 
 **Security**
 - Service accounts scoped to least privilege
@@ -478,7 +452,7 @@ AI-generated automation is only as safe as the validation pipeline around it. Be
 - Notifications to stakeholders when AI assistants perform significant actions
 
 **Team capability**
-- Engineers can review Ansible playbooks, systemd unit files, and Kubernetes manifests for subtle errors
+- Engineers can review Ansible playbooks and systemd unit files for subtle errors
 - Training programs exist before broad deployment
 
 ## Measuring Return on Investment
@@ -531,4 +505,4 @@ Track these metrics over time:
 
 ## Conclusion
 
-AI-assisted automation does not replace Ansible, systemd, or Kubernetes. It makes the engineers using them faster and more consistent. The combination of natural language intent, structured generation, and rigorous validation turns hours of boilerplate work into minutes of review and refinement. Organizations that measure the gains, maintain strong guardrails, and keep humans in the loop for high-risk work will see the clearest returns — both in time saved and in broader, more reliable automation coverage.
+AI-assisted automation does not replace Ansible or systemd. It makes the engineers using them faster and more consistent. The combination of natural language intent, structured generation, and rigorous validation turns hours of boilerplate work into minutes of review and refinement. Organizations that measure the gains, maintain strong guardrails, and keep humans in the loop for high-risk work will see the clearest returns — both in time saved and in broader, more reliable automation coverage.

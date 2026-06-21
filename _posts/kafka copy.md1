@@ -1,0 +1,217 @@
+
+            Kafka Cluster
+
+
+
+            This folder contains a Terraform module for running a cluster of Apache Kafka brokers. Under the hood, the cluster is powered by the
+            server-group module, so it supports attaching ENIs and EBS Volumes, zero-downtime rolling deployment, and auto-recovery of failed
+            nodes.
+
+            Quick start
+
+
+              • See the root README for instructions on using Terraform modules.
+
+              • See the kafka-zookeeper-standalone-clusters example for sample usage.
+
+              • See vars.tf for all the variables you can set on this module.
+
+              • See Connecting to Kafka brokers for instructions on reading / writing to Kafka.
+
+
+            Key considerations for using this module
+
+
+            Here are the key things to take into account when using this module:
+
+              • Kafka AMI
+
+              • User Data
+
+              • ZooKeeper
+
+              • Hardware
+
+              • Logs and EBS Volumes
+               • Health checks
+
+               • Rolling deployments
+
+               • Data backup
+      Kafka AMI
+
+      You specify the AMI to run in the cluster using the ami_id input variable. We recommend creating a Packer template to define the AMI with
+      the following modules installed:
+
+        • install-open-jdk: Install OpenJDK. Note that this module is part of terraform-aws-zookeeper.
+
+        • install-supervisord: Install Supervisord as a process manager. Note that this module is part of terraform-aws-zookeeper.
+
+        • install-kafka: Install Kafka.
+
+        • run-kafka: A script used to configure and start Kafka.
+
+      See the kafka-ami example for working sample code.
+
+
+      User Data
+
+      When your servers are booting, you need to tell them to start Kafka. The easiest way to do that is to specify a User Data script via the
+      user_data input variable that runs the run-kafka script. See kafka-user-data.sh for an example.
+
+
+      ZooKeeper
+
+      Kafka depends on ZooKeeper to work. The easiest way to run ZooKeeper is with terraform-aws-zookeeper. Check out the kafka-zookeeper-
+      standalone-clusters example for how to run Kafka and ZooKeeper in separate clusters and the kafka-zookeeper-confluent-oss-colocated-
+      cluster example for how to run Kafka and ZooKeeper co-located in the same cluster.
+
+
+      Hardware
+
+      The number and type of servers you need for Kafka depends on your use case and the amount of data you expect to process. Here are a
+      few basic rules of thumb:
+
+       1. Every write to Kafka gets persisted to Kafka's log on disk, so hard drive performance is important. Check out Logs and EBS Volumes for
+
+           more info.
+
+       2. Most writes to Kafka are initially buffered in memory by the OS. Therefore, you need sufficient memory to buffer active readers and
+           writers. You can do a back-of-the-envelope estimate: e.g., if you want to be able to buffer for 30 seconds, then you need at least
+            write_throughput * 30, where write_throughput is how many MB/s you expect to be written to your Kafka cluster. Using 32GB+ machines for kafka
+            brokers is common.
+
+        3. 
+    3. Kafka is not particularly CPU intensive, so getting machines with more cores is typically more efficient than machines with higher clock
+        speeds. Note that enabling SSL for Kafka brokers significantly increases CPU usage.
+
+     4. In general r3.xlarge or m4.2xlarge are a good choice for Kafka brokers.
+
+    For more info, see:
+
+      • Kafka Production Deployment
+
+      • Kafka Reference Architecture
+
+      • Design and Deployment Considerations for Deploying Apache Kafka on AWS
+
+
+   Logs and EBS Volumes
+
+   Every write to a Kafka broker is persisted to disk in Kafka's log. We recommend using a separate EBS Volume to store these logs. This
+   ensures the hard drive used for transaction logs does not have to contend with any other disk operations, which can improve Kafka
+   performance. Moreover, if a Kafka broker is replaced (e.g., during a deployment or after a crash), it can reattach the same EBS Volume and
+   catch up on whatever data it missed much faster than if it has to start from scratch (see Design and Deployment Considerations for
+    Deploying Apache Kafka on AWS).
+
+   This module creates an EBS Volume for each Kafka server and gives each (server, EBS Volume) a matching ebs-volume-0 tag. You can use
+   the persistent-ebs-volume module in the User Data of each server to find an EBS Volume with a matching ebs-volume-o tag and attach it
+   to the server during boot. That way, if a server goes down and is replaced, its replacement reattaches the same EBS Volume.
+
+   See kafka-user-data.sh for an example.
+
+
+   Health checks
+
+   We strongly recommend associating an Elastic Load Balancer (ELB) with your Kafka cluster and configuring it to perform TCP health checks
+   on the Kafka broker port (9092 by default). The kafka-cluster module allows you to associate an ELB with Kafka, using the ELB's health
+   checks to perform zero-downtime deployments (i.e., ensuring the previous node is passing health checks before deploying the next one)
+   and to detect when a server is down and needs to be automatically replaced.
+
+   Note that we do NOT recommend connecting to Kafka via the ELB. That's because Kafka clients need to connect to specific brokers,
+   
+   Check out the kafka-zookeeper-standalone-clusters example for working sample code that includes an ELB.
+
+
+       Rolling deployments
+
+       To deploy updates to a Kafka cluster, such as rolling out a new version of the AMI, you need to do the following:
+
+        1. Shut down a Kafka broker on one server.
+
+        2. Deploy the new code on the same server.
+
+        3. Wait for the new code to come up successfully and start passing health checks.
+        4. Repeat the process with the remaining servers.
+
+       This module can do this process for you automatically by using the server-group module's support for zero-downtime rolling deployment.
+
+
+       Data backup
+
+       Kafka's primary mechanism for backing up data is the replication within the cluster. Typically, the only backup you may do beyond that is to
+       create a Kafka consumer that dumps all data into a permanent, reliable store such as S3. This functionality is NOT included with this
+       module.
+
+
+       Connecting to Kafka brokers
+
+
+       Once you've used this module to deploy the Kafka brokers, you'll want to connect to them from Kafka clients (e.g., Kafka consumers and
+       producers in your apps) to read and write data. To do this, you typically need to configure the bootstrap.servers property for your Kafka
+       client with the IP addresses of a few of your Kafka brokers (you don't need all the IPs, as the rest will be discovered automatically via
+       ZooKeeper):
+
+
+         —-bootstrap.servers=10.0.0.4:9092,10.0.0.5:9092,10.0.0.6:9092
+
+
+       There are two main ways to get the IP addresses of your Kafka brokers:
+
+        1. Find Kafka brokers by tag
+
+        2. Find Kafka brokers using ENIs   
+
+   Find Kafka brokers by tag
+
+   Each Kafka broker deployed using this module will have a tag called ServerGroupName with the value set to the var.name parameter you
+   pass in. You can automatically discover all the servers with this tag and get their IP addresses using either the AWS CLI or AWS SDK.
+
+   Here's an example using the AWS CLI:
+
+
+      aws ec2 describe-instances \
+         --region <REGION> \
+         --filters \
+            "Name=instance-state-name,Values=running" \
+            "Name=tag :ServerGroupName, Values=<KAFKA_CLUSTER_NAME>"
+
+
+   In the command above, you'll need to replace < REGION> with your AWS region (e.g., us-east-1) and < KAFKA_CLUSTER_NAME> with the
+   name of your Kafka cluster (i.e., the var.name parameter you passed to this module).
+
+   The returned data will contain the information about all the Kafka brokers, including their private IP addresses. Extract these IPs, add the
+   Kafka port to each one (default 9092 ), and put them into a comma-separated list:
+
+
+      --bootstrap.servers=10.0.0.4:9092,10.0.0.5:9092,10.0.0.6:9092
+
+
+
+   Find Kafka brokers using ENIs
+
+   An alternative option is to attach an Elastic Network Interface (ENI) to each Kafka broker so that it has a static IP address. You can enable
+   ENIs using the attach_eni parameter:
+
+
+      module "kafka_brokers" {
+         source = "git::git@github.com:gruntwork-io/terraform-aws-kafka.git//modules/kafka-cluster?ref=v0.0.5"
+
+         cluster_name = "example-kafka-brokers"
+         attach_eni    = true
+
+         # (other params omitted)        
+      }
+
+  With ENIs enabled, this module will output the list of private IPs for your brokers in the private_ips output variable. Attach the port
+  number (default 9092) to each of these IPs and pass them on to your Kafka clients:
+
+
+    bootstrap_servers = "${formatlist("%s:9092", module.kafka_brokers.private_ips)}"
+
+
+  The main downside of using ENIs is if you decide to change the size of your Kafka cluster, and therefore the number of ENIs, then Kafka
+  clients that have the old list of ENIs won't be updated until you re-deploy them with a terraform apply . If you increased the size of your
+  cluster, then those older clients may not have access to all the available ENIs, which is typically not a problem, since they are only used for
+  bootstrapping, and you only need a few anyway. However, if you decreased the size of your cluster, then those older clients may be trying to
+  connect to ENIs that are no longer valid.      

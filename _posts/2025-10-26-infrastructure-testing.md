@@ -106,4 +106,4 @@ Significant cost optimization by catching issues in testing.
 ![](/Users/merciful/Pictures/lambdapipes1.png)
 
 ## Conclusion
-Like any other code, Infrastructure code that is not tested is bound to have bugs. The question isn't whether infrastructure code should be tested—it's whether we can afford not to. There's no going back once you experience the peace of mind that comes with truly tested infrastructure.
+Like any other code, Infrastructure code that is not tested is bound to have bugs. The question isn't whether infrastructure code should be tested—it's whether we can afford not to test it. Tested infrastructure comes with peace of mind, predictability and assurance
