@@ -58,11 +58,149 @@ Every action should be logged. For low-risk actions, such as generating a manife
 
 ## A Practical Integration Pattern
 
-The typical implementation has three parts: a context collector, a reasoning engine, and an executor.
+A real assistant is built from three layers: context collection, reasoning, and execution. Each layer is deliberately narrow so that a mistake in one layer does not automatically become a cluster change.
 
-The context collector uses the Kubernetes Python client to read pod status, events, metrics, and logs. The reasoning engine, which can be a local LLM or an external API, turns that context into a diagnosis or recommendation. The executor applies the action only if it passes schema validation, policy checks, and an approval gate when required.
+The context layer reads only what the assistant needs to reason about. The reasoning layer sends that context to a local LLM with a strict output schema. The execution layer checks the proposal against a risk policy and either runs it in dry-run mode or applies it after approval.
 
-A Python implementation would expose the Kubernetes client to the model through a thin safety layer. The layer rejects any command that modifies sensitive resources or uses a disallowed verb. The model never sees raw credentials: the pod uses its own service account token, and the client library handles authentication.
+### Risk Classification
+
+The first control is a simple policy table that decides what the assistant can do without asking:
+
+```python
+operation_policies = {
+    'low_risk_auto_approve': [
+        'get_pod_logs',
+        'describe_resource',
+        'list_resources',
+        'get_metrics'
+    ],
+    'medium_risk_require_approval': [
+        'scale_deployment',
+        'restart_pod',
+        'update_configmap'
+    ],
+    'high_risk_require_senior_approval': [
+        'delete_pod',
+        'delete_deployment',
+        'update_service',
+        'apply_manifest'
+    ]
+}
+```
+
+Read-only diagnostics can run automatically. Anything that changes state, even a harmless-looking scale or restart, must be proposed and approved. Destructive or infrastructure-level changes need senior sign-off.
+
+### Collecting Cluster Context
+
+Before the model is asked anything, the assistant gathers a small snapshot of the cluster:
+
+```python
+context = {
+    'namespaces': [],
+    'node_count': 0,
+    'available_resources': {}
+}
+
+namespaces = self.v1.list_namespace()
+context['namespaces'] = [ns.metadata.name for ns in namespaces.items]
+
+nodes = self.v1.list_node()
+context['node_count'] = len(nodes.items)
+
+for node in nodes.items:
+    allocatable = node.status.allocatable
+    if 'cpu' in allocatable:
+        total_cpu += self._parse_cpu(allocatable['cpu'])
+    if 'memory' in allocatable:
+        total_memory += self._parse_memory(allocatable['memory'])
+
+context['available_resources'] = {
+    'cpu_cores': total_cpu,
+    'memory_gb': total_memory / (1024**3)
+}
+```
+
+This context is embedded in the prompt so the model knows the shape of the cluster without being fed every raw object. It is also a good place to scrub sensitive names or labels if needed.
+
+### Reasoning About a Failing Pod
+
+When a pod is unhealthy, the assistant reads status, recent logs, and events, then asks the model for a structured diagnosis:
+
+```python
+pod_context = {
+    'pod_name': pod_name,
+    'namespace': namespace,
+    'phase': pod.status.phase,
+    'conditions': [
+        {
+            'type': c.type,
+            'status': c.status,
+            'reason': c.reason,
+            'message': c.message
+        }
+        for c in (pod.status.conditions or [])
+    ],
+    'container_statuses': [
+        {
+            'name': cs.name,
+            'ready': cs.ready,
+            'restart_count': cs.restart_count,
+            'state': str(cs.state)
+        }
+        for cs in (pod.status.container_statuses or [])
+    ],
+    'recent_events': [
+        {
+            'type': e.type,
+            'reason': e.reason,
+            'message': e.message
+        }
+        for e in events.items[-10:]
+    ],
+    'recent_logs': logs[-1000:] if logs else ""
+}
+```
+
+The model is asked to return a JSON object with a fixed schema: `operation_type`, `target_resource`, `risk_level`, `rationale`, `rollback_plan`, and `kubectl_commands`. That structure makes the next step — validation and execution — straightforward to code.
+
+### Proposing a Scale Operation
+
+For a scaling recommendation, the assistant builds a proposal object that captures current state, desired state, and how to undo the change:
+
+```python
+proposal = K8sOperationProposal(
+    operation_type='scale',
+    target_resource=f"deployment/{deployment_name}",
+    target_namespace=namespace,
+    current_state={'replicas': current_replicas},
+    proposed_state={'replicas': desired_replicas},
+    risk_level='low' if abs(desired_replicas - current_replicas) <= 2 else 'medium',
+    rationale=f"Scaling from {current_replicas} to {desired_replicas} replicas",
+    rollback_plan=f"kubectl scale deployment/{deployment_name} --replicas={current_replicas} -n {namespace}",
+    estimated_impact=f"{'Increase' if desired_replicas > current_replicas else 'Decrease'} capacity by {abs(desired_replicas - current_replicas)} replicas"
+)
+```
+
+The risk level is computed from the size of the change, not from the model's opinion. The rollback plan is generated automatically from the current state, so the operator always knows how to revert.
+
+### Dry-Run Execution
+
+The final layer never silently changes the cluster. By default, the assistant runs in dry-run mode and prints what it would do:
+
+```python
+print(f"{'[DRY-RUN] ' if self.dry_run else ''}Executing Operation")
+print(f"Type: {proposal.operation_type}")
+print(f"Target: {proposal.target_namespace}/{proposal.target_resource}")
+print(f"Risk: {proposal.risk_level.upper()}")
+
+print("DRY-RUN MODE: Would execute the following:")
+print(f"  Current: {proposal.current_state}")
+print(f"  Proposed: {proposal.proposed_state}")
+print(f"  Impact: {proposal.estimated_impact}")
+print(f"  Rollback: {proposal.rollback_plan}")
+```
+
+Only after the operator flips `dry_run` to `False` and explicitly approves the proposal does the assistant call `patch_namespaced_deployment_scale` or another mutating API. This keeps the blast radius small while the team is still building trust in the assistant.
 
 ## Deployment Checklist
 
