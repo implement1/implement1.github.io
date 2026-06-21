@@ -46,7 +46,7 @@ A prompt like *"ensure all web servers have the latest security patches and rest
 
 ### Example: AI-Assisted Ansible Playbook Generator
 
-The following Python tool, `intent-to-playbook.py`, turns a plain English request into a checked, runnable Ansible playbook. It keeps the same idea as the original design but uses a different structure and naming so you can adapt it cleanly to your own workflow:
+The following Python tool, `intent-to-playbook.py`, turns a plain English request into a checked, runnable Ansible playbook:
 
 ```python
 #!/usr/bin/env python3
