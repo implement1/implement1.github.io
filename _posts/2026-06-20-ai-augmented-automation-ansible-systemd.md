@@ -46,348 +46,280 @@ A prompt like *"ensure all web servers have the latest security patches and rest
 
 ### Example: AI-Assisted Ansible Playbook Generator
 
-The following Python tool connects to a local Ollama endpoint and turns a natural language request into a validated Ansible playbook:
+The following Python tool, `intent-to-playbook.py`, turns a plain English request into a checked, runnable Ansible playbook. It keeps the same idea as the original design but uses a different structure and naming so you can adapt it cleanly to your own workflow:
 
 ```python
 #!/usr/bin/env python3
 
 """
-AI-Powered Ansible Playbook Generator
-Generates production-ready Ansible playbooks from natural language intent.
+intent-to-playbook.py
+Translate a natural-language ops request into a validated Ansible playbook.
 """
 
-import yaml
 import json
 import re
-from typing import Dict, List, Optional
-from dataclasses import dataclass, field, asdict
+import sys
+from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
+from typing import Any
+
 import requests
+import yaml
 
 
 @dataclass
-class AnsibleTask:
-    """Represents a single Ansible task with full metadata."""
+class Step:
+    """One Ansible task or handler."""
     name: str
     module: str
-    module_args: Dict
-    register: Optional[str] = None
-    when: Optional[str] = None
-    notify: Optional[List[str]] = None
-    tags: List[str] = field(default_factory=list)
-    become: Optional[bool] = None
+    args: dict
+    register: str | None = None
+    when: str | None = None
+    notify: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    become: bool | None = None
 
-    def to_dict(self) -> Dict:
-        """Convert to Ansible task format."""
-        task = {"name": self.name}
-        task[self.module] = self.module_args
+    def to_dict(self) -> dict:
+        step = {"name": self.name, self.module: self.args}
         if self.register:
-            task["register"] = self.register
+            step["register"] = self.register
         if self.when:
-            task["when"] = self.when
+            step["when"] = self.when
         if self.notify:
-            task["notify"] = self.notify
+            step["notify"] = self.notify
         if self.tags:
-            task["tags"] = self.tags
+            step["tags"] = self.tags
         if self.become is not None:
-            task["become"] = self.become
-        return task
+            step["become"] = self.become
+        return step
 
 
 @dataclass
-class AnsiblePlaybook:
-    """Complete Ansible playbook structure."""
+class Play:
+    """A single Ansible play."""
     name: str
     hosts: str
     gather_facts: bool = True
     become: bool = False
-    vars: Dict = field(default_factory=dict)
-    tasks: List[AnsibleTask] = field(default_factory=list)
-    handlers: List[AnsibleTask] = field(default_factory=list)
-    tags: List[str] = field(default_factory=list)
+    vars: dict = field(default_factory=dict)
+    tasks: list[Step] = field(default_factory=list)
+    handlers: list[Step] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
     def to_yaml(self) -> str:
-        """Generate YAML representation of the playbook."""
-        playbook = [{
+        play = {
             "name": self.name,
             "hosts": self.hosts,
             "gather_facts": self.gather_facts,
-            "become": self.become
-        }]
+            "become": self.become,
+        }
         if self.vars:
-            playbook[0]["vars"] = self.vars
+            play["vars"] = self.vars
         if self.tags:
-            playbook[0]["tags"] = self.tags
+            play["tags"] = self.tags
         if self.tasks:
-            playbook[0]["tasks"] = [task.to_dict() for task in self.tasks]
+            play["tasks"] = [t.to_dict() for t in self.tasks]
         if self.handlers:
-            playbook[0]["handlers"] = [handler.to_dict() for handler in self.handlers]
-        return yaml.dump(playbook, default_flow_style=False, sort_keys=False)
+            play["handlers"] = [h.to_dict() for h in self.handlers]
+        return yaml.dump([play], default_flow_style=False, sort_keys=False)
 
 
-class AnsiblePlaybookGenerator:
-    """
-    Generates Ansible playbooks using LLM assistance.
-    Ensures generated playbooks follow best practices and are production-ready.
-    """
+class IntentToPlaybook:
+    """Ask a local LLM for a playbook, then lint and package it."""
 
-    def __init__(self, model_name: str = "llama3.1:8b", ollama_url: str = "http://localhost:11434"):
-        self.model_name = model_name
-        self.ollama_url = ollama_url
-        self.api_endpoint = f"{ollama_url}/api/generate"
-        self.module_patterns = {
-            'package_management': ['apt', 'yum', 'dnf', 'package'],
-            'service_management': ['systemd', 'service'],
-            'file_operations': ['file', 'copy', 'template', 'lineinfile', 'blockinfile'],
-            'command_execution': ['command', 'shell', 'script'],
-            'user_management': ['user', 'group'],
-            'firewall': ['firewalld', 'ufw', 'iptables'],
-        }
-        self.best_practices = {
-            'idempotency': True,
-            'check_mode_support': True,
-            'error_handling': True,
-            'use_handlers': True,
-            'task_naming': True,
-            'variable_usage': True,
-        }
+    def __init__(self, model: str = "llama3.1:8b", base_url: str = "http://localhost:11434"):
+        self.model = model
+        self.api_url = f"{base_url}/api/generate"
 
-    def _build_ansible_system_prompt(self) -> str:
-        """Construct system prompt with Ansible-specific guidance."""
-        return """You are an expert Ansible automation engineer. Generate production-ready
-Ansible playbooks that follow these strict requirements:
+    def _prompt(self) -> str:
+        return """You are a senior Ansible engineer. Produce a production-ready Ansible play as JSON.
 
-ANSIBLE BEST PRACTICES:
-1. All tasks must be idempotent (safe to run multiple times)
-2. Use appropriate modules (prefer package over apt/yum for portability)
-3. Include descriptive task names explaining what each task does
-4. Use handlers for service restarts (never restart in tasks directly)
-5. Include check mode support (avoid modules that don't support it)
-6. Use variables for values that might change
-7. Add appropriate tags for selective execution
-8. Include proper error handling with failed_when or ignore_errors when needed
-9. Use become only when necessary (per-task privilege escalation)
-10. Register task results when subsequent tasks need them
+Rules:
+- All tasks must be idempotent.
+- Use handlers for service restarts; never restart a service directly inside a task.
+- Prefer generic modules (`package` over `apt`/`yum`) when possible.
+- Give every task a descriptive name.
+- Use `changed_when` with `command`/`shell` tasks.
+- Keep privilege escalation (`become`) at the task level only when needed.
+- Support check mode; avoid modules that cannot run in check mode.
 
-PLAYBOOK STRUCTURE:
-- name: Clear descriptive playbook name
-- hosts: Target host group or pattern
-- gather_facts: true (unless specifically not needed)
-- become: false at playbook level (use per-task become)
-- vars: Variables with sensible defaults
-- tasks: Ordered list of tasks
-- handlers: Service restart/reload handlers
-
-OUTPUT FORMAT:
-Respond with valid JSON in this exact structure:
+Return JSON matching this shape:
 {
-    "playbook_name": "descriptive name",
-    "hosts": "target_hosts",
-    "gather_facts": true,
-    "become": false,
-    "vars": {"var_name": "default_value"},
-    "tasks": [
-        {
-            "name": "task description",
-            "module": "module_name",
-            "module_args": {"arg": "value"},
-            "register": "result_var",
-            "when": "condition",
-            "notify": ["handler_name"],
-            "tags": ["tag1"],
-            "become": true
-        }
-    ],
-    "handlers": [
-        {
-            "name": "handler name",
-            "module": "systemd",
-            "module_args": {"name": "service", "state": "restarted"}
-        }
-    ],
-    "explanation": "what this playbook does and why it's safe",
-    "check_mode_compatible": true,
-    "estimated_duration": "expected execution time"
+  "playbook_name": "...",
+  "hosts": "...",
+  "gather_facts": true,
+  "become": false,
+  "vars": {},
+  "tasks": [
+    {
+      "name": "...",
+      "module": "...",
+      "args": {},
+      "register": "...",
+      "when": "...",
+      "notify": ["..."],
+      "tags": ["..."],
+      "become": true
+    }
+  ],
+  "handlers": [
+    {"name": "...", "module": "...", "args": {}}
+  ],
+  "explanation": "...",
+  "check_mode_compatible": true,
+  "estimated_duration": "..."
 }"""
 
-    def generate_playbook_from_intent(self, user_intent: str, target_hosts: str = "all") -> Dict:
-        """Generate Ansible playbook from natural language description."""
-        system_prompt = self._build_ansible_system_prompt()
-        full_prompt = f"""{system_prompt}
-
-USER REQUEST: {user_intent}
-TARGET HOSTS: {target_hosts}
-
-Generate a complete, production-ready Ansible playbook to accomplish this safely."""
+    def ask_llm(self, intent: str, hosts: str = "all") -> dict:
+        """Send the intent to the model and return parsed JSON."""
+        payload = f"{self._prompt()}\n\nIntent: {intent}\nHosts: {hosts}\n\nReturn only the JSON object."
         try:
-            response = requests.post(
-                self.api_endpoint,
+            resp = requests.post(
+                self.api_url,
                 json={
-                    "model": self.model_name,
-                    "prompt": full_prompt,
+                    "model": self.model,
+                    "prompt": payload,
                     "stream": False,
-                    "options": {
-                        "temperature": 0.1,
-                        "top_p": 0.9
-                    }
+                    "options": {"temperature": 0.1, "top_p": 0.9},
                 },
-                timeout=120
+                timeout=120,
             )
-            if response.status_code != 200:
-                return {"error": f"LLM API error: {response.status_code}"}
-            llm_output = response.json()['response']
-            json_match = re.search(r'\{.*\}', llm_output, re.DOTALL)
-            if json_match:
-                try:
-                    parsed = json.loads(json_match.group())
-                    return parsed
-                except json.JSONDecodeError as e:
-                    return {"error": f"JSON parsing failed: {e}"}
-            return {"error": "No valid JSON found in LLM response"}
+            resp.raise_for_status()
+            raw = resp.json().get("response", "")
+            match = re.search(r"\{.*\}", raw, re.DOTALL)
+            if not match:
+                return {"error": "No JSON object found in model response"}
+            return json.loads(match.group())
         except requests.Timeout:
-            return {"error": "LLM request timeout"}
-        except Exception as e:
-            return {"error": f"Unexpected error: {e}"}
+            return {"error": "LLM request timed out"}
+        except requests.RequestException as e:
+            return {"error": f"Request failed: {e}"}
+        except json.JSONDecodeError as e:
+            return {"error": f"Invalid JSON: {e}"}
 
-    def validate_playbook_structure(self, playbook_data: Dict) -> tuple[bool, List[str]]:
-        """Validate generated playbook follows Ansible best practices."""
+    def lint(self, data: dict) -> tuple[bool, list[str]]:
+        """Check for common mistakes before the playbook is used."""
         issues = []
-        required_fields = ['playbook_name', 'hosts', 'tasks']
-        for field in required_fields:
-            if field not in playbook_data:
-                issues.append(f"Missing required field: {field}")
-        if 'tasks' in playbook_data:
-            for idx, task in enumerate(playbook_data['tasks']):
-                if 'name' not in task:
-                    issues.append(f"Task {idx} missing descriptive name")
-                if 'module' not in task:
-                    issues.append(f"Task {idx} missing module specification")
-                if task.get('module') in ['systemd', 'service']:
-                    if task.get('module_args', {}).get('state') in ['restarted', 'reloaded']:
-                        if 'when' not in task:
-                            issues.append(f"Task '{task.get('name')}' directly restarts service - should use handler")
-                if task.get('module') in ['shell', 'command']:
-                    if 'register' not in task and 'changed_when' not in task:
-                        issues.append(f"Task '{task.get('name')}' uses {task['module']} without changed_when")
-        notified_handlers = set()
-        if 'tasks' in playbook_data:
-            for task in playbook_data['tasks']:
-                if 'notify' in task:
-                    notified_handlers.update(task['notify'])
-        defined_handlers = set()
-        if 'handlers' in playbook_data:
-            for handler in playbook_data['handlers']:
-                if 'name' in handler:
-                    defined_handlers.add(handler['name'])
-        missing_handlers = notified_handlers - defined_handlers
-        if missing_handlers:
-            issues.append(f"Tasks notify undefined handlers: {missing_handlers}")
-        is_valid = len(issues) == 0
-        return is_valid, issues
+        for key in ("playbook_name", "hosts", "tasks"):
+            if key not in data:
+                issues.append(f"Missing top-level key: {key}")
 
-    def create_playbook(self, user_intent: str, target_hosts: str = "webservers") -> tuple[Optional[AnsiblePlaybook], Dict]:
-        """Complete workflow: generate, validate, and create Ansible playbook."""
-        print(f"\n{'='*80}")
-        print(f"Generating Ansible Playbook")
-        print(f"{'='*80}")
-        print(f"Intent: {user_intent}")
-        print(f"Target Hosts: {target_hosts}\n")
-        print("Generating playbook with LLM...")
-        playbook_data = self.generate_playbook_from_intent(user_intent, target_hosts)
-        if 'error' in playbook_data:
-            print(f"Generation failed: {playbook_data['error']}")
-            return None, playbook_data
-        print("Validating playbook structure...")
-        is_valid, issues = self.validate_playbook_structure(playbook_data)
-        if not is_valid:
-            print("Validation issues found:")
+        for idx, task in enumerate(data.get("tasks", [])):
+            if "name" not in task:
+                issues.append(f"Task {idx} is missing a name")
+            if "module" not in task:
+                issues.append(f"Task {idx} is missing a module")
+
+            module = task.get("module", "")
+            state = task.get("args", {}).get("state")
+            if module in {"systemd", "service"} and state in {"restarted", "reloaded"}:
+                if not task.get("when"):
+                    issues.append(
+                        f"Task '{task.get('name')}' restarts the service directly; use a handler"
+                    )
+
+            if module in {"command", "shell"} and "changed_when" not in task:
+                issues.append(f"Task '{task.get('name')}' needs changed_when")
+
+        notified = set()
+        for task in data.get("tasks", []):
+            notified.update(task.get("notify", []))
+
+        defined = {h.get("name") for h in data.get("handlers", [])}
+        missing = notified - defined
+        if missing:
+            issues.append(f"Handlers {missing} are referenced but not defined")
+
+        return (not issues), issues
+
+    def build(self, data: dict, hosts: str) -> Play:
+        """Turn validated JSON into a Play object."""
+        play = Play(
+            name=data.get("playbook_name", "Generated play"),
+            hosts=data.get("hosts", hosts),
+            gather_facts=data.get("gather_facts", True),
+            become=data.get("become", False),
+            vars=data.get("vars", {}),
+            tags=data.get("tags", []),
+        )
+        for item in data.get("tasks", []):
+            play.tasks.append(
+                Step(
+                    name=item["name"],
+                    module=item["module"],
+                    args=item.get("args", {}),
+                    register=item.get("register"),
+                    when=item.get("when"),
+                    notify=item.get("notify", []),
+                    tags=item.get("tags", []),
+                    become=item.get("become"),
+                )
+            )
+        for item in data.get("handlers", []):
+            play.handlers.append(
+                Step(
+                    name=item["name"],
+                    module=item["module"],
+                    args=item.get("args", {}),
+                )
+            )
+        return play
+
+    def run(self, intent: str, hosts: str = "webservers") -> tuple[Play | None, dict]:
+        """Full pipeline: generate, lint, and report."""
+        print(f"Generating playbook for: {intent}")
+        data = self.ask_llm(intent, hosts)
+        if "error" in data:
+            print(f"Generation failed: {data['error']}")
+            return None, data
+
+        ok, issues = self.lint(data)
+        if not ok:
+            print("Lint warnings:")
             for issue in issues:
                 print(f"  - {issue}")
-            print("\nProceeding with caution - manual review required")
         else:
-            print("Validation passed")
-        playbook = AnsiblePlaybook(
-            name=playbook_data.get('playbook_name', 'Generated Playbook'),
-            hosts=playbook_data.get('hosts', target_hosts),
-            gather_facts=playbook_data.get('gather_facts', True),
-            become=playbook_data.get('become', False),
-            vars=playbook_data.get('vars', {}),
-            tags=playbook_data.get('tags', [])
-        )
-        for task_data in playbook_data.get('tasks', []):
-            task = AnsibleTask(
-                name=task_data['name'],
-                module=task_data['module'],
-                module_args=task_data.get('module_args', {}),
-                register=task_data.get('register'),
-                when=task_data.get('when'),
-                notify=task_data.get('notify'),
-                tags=task_data.get('tags', []),
-                become=task_data.get('become')
-            )
-            playbook.tasks.append(task)
-        for handler_data in playbook_data.get('handlers', []):
-            handler = AnsibleTask(
-                name=handler_data['name'],
-                module=handler_data['module'],
-                module_args=handler_data.get('module_args', {})
-            )
-            playbook.handlers.append(handler)
-        metadata = {
-            'generation_time': datetime.utcnow().isoformat(),
-            'user_intent': user_intent,
-            'target_hosts': target_hosts,
-            'validation_passed': is_valid,
-            'validation_issues': issues,
-            'explanation': playbook_data.get('explanation', ''),
-            'check_mode_compatible': playbook_data.get('check_mode_compatible', True),
-            'estimated_duration': playbook_data.get('estimated_duration', 'Unknown')
+            print("Lint passed")
+
+        play = self.build(data, hosts)
+        meta = {
+            "intent": intent,
+            "hosts": hosts,
+            "generated_at": datetime.utcnow().isoformat(),
+            "lint_ok": ok,
+            "lint_issues": issues,
+            "explanation": data.get("explanation", ""),
+            "check_mode": data.get("check_mode_compatible", True),
+            "estimated_duration": data.get("estimated_duration", "unknown"),
         }
-        print(f"\nGenerated Playbook: {playbook.name}")
-        print(f"Explanation: {metadata['explanation']}")
-        print(f"Check Mode Compatible: {metadata['check_mode_compatible']}")
-        print(f"Estimated Duration: {metadata['estimated_duration']}")
-        return playbook, metadata
+        return play, meta
 
-    def save_playbook(self, playbook: AnsiblePlaybook, filepath: str, include_metadata: bool = True):
-        """Save playbook to file with optional metadata comments."""
-        yaml_content = playbook.to_yaml()
-        if include_metadata:
-            header = f"""---
-# Generated by AI-Assisted Ansible Playbook Generator
-# Generation Time: {datetime.utcnow().isoformat()}
-# Review this playbook carefully before execution
-# Test with: ansible-playbook {filepath} --check --diff
-
-"""
-            yaml_content = header + yaml_content
-        with open(filepath, 'w') as f:
-            f.write(yaml_content)
-        print(f"\nPlaybook saved to: {filepath}")
-        print(f"Test with: ansible-playbook {filepath} --check --diff")
-        print(f"Execute with: ansible-playbook {filepath}")
+    def save(self, play: Play, path: str | Path) -> None:
+        """Write the play to disk with a safety header."""
+        path = Path(path)
+        header = (
+            "# Generated by intent-to-playbook.py\n"
+            f"# Created: {datetime.utcnow().isoformat()}\n"
+            f"# Review before running: ansible-playbook {path} --check --diff\n\n"
+        )
+        path.write_text(header + play.to_yaml())
+        print(f"Saved to {path}")
 
 
-if __name__ == '__main__':
-    generator = AnsiblePlaybookGenerator()
+if __name__ == "__main__":
     intent = """Ensure all web servers have the latest security updates installed.
-    After updating packages, verify nginx configuration is valid, then restart nginx
-    only if the configuration file changed. Include rollback capability if nginx
-    fails to start."""
-    playbook, metadata = generator.create_playbook(
-        user_intent=intent,
-        target_hosts="webservers"
-    )
-    if playbook:
-        print("\n" + "="*80)
-        print("GENERATED PLAYBOOK YAML")
-        print("="*80)
-        print(playbook.to_yaml())
-        generator.save_playbook(playbook, "/tmp/security_update_webservers.yml")
-        print("\n" + "="*80)
-        print("METADATA")
-        print("="*80)
-        print(json.dumps(metadata, indent=2))
+    Verify nginx configuration is valid, then restart nginx only if the
+    configuration file changed. Include rollback if nginx fails to start."""
+
+    converter = IntentToPlaybook()
+    play, meta = converter.run(intent, hosts="webservers")
+    if play:
+        print("\n--- Generated Playbook ---\n")
+        print(play.to_yaml())
+        converter.save(play, "/tmp/security_update_webservers.yml")
+        print("\n--- Metadata ---")
+        print(json.dumps(meta, indent=2))
 ```
 
 ### Why This Pattern Works
