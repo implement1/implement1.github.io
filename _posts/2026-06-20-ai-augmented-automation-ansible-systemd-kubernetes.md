@@ -403,7 +403,9 @@ The result is a first draft that is already closer to production than a blank te
 
 ### Maintenance Savings
 
-Consider an organization with one hundred Ansible playbooks that each need quarterly updates. At ninety minutes per update, the traditional cost is 150 hours per quarter. Reducing each update to twenty minutes saves 70 minutes per playbook, or nearly 117 hours per quarter — about $11,700 quarterly, or $47,000 annually from playbook maintenance alone.
+Picture a mid-sized ops team maintaining a playbook library of roughly one hundred playbooks. Every quarter each playbook needs a refresh — a dependency bump, a security patch, or a small application change. Under the old workflow, refreshing one playbook takes an hour and a half of focused engineering time. Across the whole library that is one and a half person-weeks of work each quarter.
+
+With AI-assisted generation, the same refresh takes about twenty minutes once an engineer reviews and tests the diff. The per-playbook saving is over an hour, and across the library the team recovers nearly five person-days per quarter. At a fully loaded automation-engineering rate of $100 per hour, that is roughly $47,000 per year recovered from playbook maintenance alone — before counting the new automation the team now has bandwidth to write.
 
 ## systemd: Hardened Unit Files from a Description
 
