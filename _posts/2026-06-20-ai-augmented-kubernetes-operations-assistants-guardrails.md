@@ -2,13 +2,13 @@
 
 ![Kubernetes AI assistant — a pixel-art robot scanning pod containers, logs, and scaling graphs inside a cluster](https://implement1.github.io/img/ai-augmented-kubernetes/hero.png)
 
-This post explores how to put an AI assistant to work inside a Kubernetes cluster, what it can realistically automate, and how to keep it safe.
+This post explores how to integrate an AI assistant into a Kubernetes cluster, what it can realistically automate, and how to keep it safe from unintended actions.
 
 ## Two Kinds of AI Assistance for Kubernetes
 
-The easiest place to start is generating artifacts. A model can write Dockerfiles with efficient layer ordering, Kubernetes manifests with resource quotas and security contexts, and operational scripts that follow established patterns. That alone saves time, but the bigger opportunity is the second kind: an agent that observes the cluster, analyzes patterns, and acts within policy.
+The easiest place to start is generating artifacts. A model can write Dockerfiles with efficient layer ordering, Kubernetes manifests with resource quotas and security contexts, and operational scripts that follow established patterns. The agent can also observe the cluster, analyze patterns, and acts within policy.
 
-The same agent can do both. It generates manifests when asked, and it continuously monitors the cluster for anomalies or optimization opportunities. The key is that every action it takes passes through the same validation, approval, and audit gates that human operators already respect.
+It generates manifests when asked, and continuously monitors the cluster for anomalies or optimization opportunities. The key is that every action it takes passes through the same validation, approval, and audit gates that human operators already enforce.
 
 ```
 Engineer request → AI assistant pod → Kubernetes API → Validation → Approved action
@@ -30,7 +30,7 @@ These tasks scale poorly with headcount. A small SRE team responsible for dozens
 
 In a fleet of fifty clusters, a team might see ten operational incidents per week that require investigation. If the assistant can reduce that investigation time to thirty minutes, the team recovers roughly sixty-five hours per week, or about $65,000 annually in labor costs alone.
 
-Over-provisioned workloads are common in Kubernetes because requests are often set conservatively. An assistant that continuously recommends right-sized requests can reduce cluster footprint. In cloud environments, where idle compute is billed directly, those recommendations translate into ongoing infrastructure savings that can exceed the labor savings.
+Over-provisioned workloads are common in Kubernetes. An assistant can continuously recommend right-sized requests, which can reduce cluster footprint. In cloud environments, where idle compute is billed directly, those recommendations translate into ongoing infrastructure savings that can exceed the labor savings.
 
 ## Governance Requirements
 
@@ -48,7 +48,7 @@ Everything the assistant does should be logged. Low-risk actions like reading me
 
 ## A Practical Integration Pattern
 
-A real assistant is built from three layers: context collection, reasoning, and execution. Each layer is deliberately narrow so that a mistake in one layer does not automatically become a cluster change.
+An assistant is built from three layers: context collection, reasoning, and execution. Each layer is deliberately narrow so that a mistake in one layer does not automatically become a cluster change.
 
 The context layer reads only what the assistant needs to reason about. The reasoning layer sends that context to a local LLM with a strict output schema. The execution layer checks the proposal against a risk policy and either runs it in dry-run mode or applies it after approval.
 
@@ -70,7 +70,7 @@ action_tiers = {
         'tune_resources'
     ],
     'restricted': [
-        'evacuate_node',
+        'drain_node',
         'delete_workload',
         'change_service',
         'apply_manifest'
@@ -184,7 +184,7 @@ print(f"Impact: {plan.impact}")
 print(f"Undo: {plan.undo_command}")
 ```
 
-Only after the operator flips `simulate` to `False` and explicitly approves the plan does the assistant call `patch_namespaced_deployment` or another mutating API. This keeps the blast radius small while the team is still building trust in the assistant.
+Only after the operator changes `simulate` to `False` and explicitly approves the plan does the assistant call `patch_namespaced_deployment` or another mutating API. This keeps the blast radius small.
 
 ## Deployment Checklist
 
@@ -210,10 +210,9 @@ A model can confidently suggest a change that sounds right but is not. The safes
 
 ### Prompt Injection
 
-An attacker who can influence logs, metrics, or event messages may try to manipulate the assistant through the data it reads. Sanitize all system-sourced input before adding it to prompts, enforce a strict output schema, and treat the model's output as untrusted no matter what the prompt was.
+An attacker may inject malicious data into logs, metrics, or event messages in an attempt to manipulate the assistant. Sanitize all system-sourced input before adding it to prompts, enforce a strict output schema, and treat the model's output as untrusted.
 
 ## Conclusion
 
-Kubernetes gives an AI operations assistant the context, APIs, and isolation it needs to be useful. Implemented well, it cuts the time spent on repetitive incident triage and tuning and makes those responses more consistent. Implemented carelessly, it adds a new attack surface and a source of unpredictable changes.
+Kubernetes gives an AI operations assistant the context, APIs, and isolation to cut the time spent on repetitive incident triage and tuning and makes responses more consistent. Implemented carelessly, it adds a new attack surface and a source of unpredictable changes.
 
-The teams that get the most value treat the assistant as a junior operator with tight boundaries: it can gather information, propose actions, and execute only the low-risk decisions that humans have already approved. That balance keeps the cluster safe and the team productive.
