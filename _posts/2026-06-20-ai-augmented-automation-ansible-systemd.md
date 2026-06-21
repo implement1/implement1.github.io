@@ -52,28 +52,28 @@ intent-to-playbook.py
 Translate a natural-language ops request into a validated Ansible playbook.
 """
 
-import json
-import re
-from dataclasses import dataclass, field
-from datetime import datetime
-from pathlib import Path
-from typing import Any
+import json      # parse the LLM response and serialize metadata
+import re        # extract the JSON object from free-form model output
+from dataclasses import dataclass, field  # lightweight containers for tasks and plays
+from datetime import datetime  # timestamps for generated files and metadata
+from pathlib import Path  # cross-platform file paths
+from typing import Any  # generic type used for future extensibility
 
-import requests
-import yaml
+import requests  # HTTP client for the Ollama API
+import yaml      # emit the final Ansible playbook
 
 
 @dataclass
 class Step:
     """Represents a single Ansible task or handler."""
-    name: str
-    module: str
-    args: dict
-    register: str | None = None
-    when: str | None = None
-    notify: list[str] = field(default_factory=list)
-    tags: list[str] = field(default_factory=list)
-    become: bool | None = None
+    name: str                       # human-readable description
+    module: str                     # Ansible module name
+    args: dict                      # arguments passed to the module
+    register: str | None = None     # variable to capture the module result
+    when: str | None = None         # conditional expression
+    notify: list[str] = field(default_factory=list)  # handlers triggered on change
+    tags: list[str] = field(default_factory=list)    # selective execution tags
+    become: bool | None = None      # per-task privilege escalation
 
     def to_dict(self) -> dict:
         """Serialize this Step into the dictionary shape Ansible expects.
