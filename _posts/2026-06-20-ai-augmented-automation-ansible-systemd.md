@@ -38,9 +38,7 @@ Engineer intent → LLM generator → Validation layer → Git commit → CI/CD 
 
 ![Ansible playbook generation — YAML tasks and handlers rendered as pixel art code blocks](https://implement1.github.io/img/ai-augmented-automation/ansible-generation.png)
 
-Ansible is almost ideal for AI-assisted authoring: the language is readable, the execution model is predictable, and the difference between a quick sketch and a production-grade playbook is well understood. The YAML itself is rarely the blocker. What slows engineers down is deciding how to express the intent — choosing the right module, wiring privilege escalation, routing service restarts through handlers, and making sure the playbook behaves correctly in check mode.
-
-Take a routine request: patch a web server fleet, validate the configuration, and restart the web server only if something actually changed. The surface task is simple, but the playbook needs package management, a config test, a handler, and a health check that can roll back on failure. Building that from scratch can stretch across a morning. With AI-assisted generation, the bulk of the playbook appears in a few minutes, leaving the engineer to review the choices and run it in check mode before any real change.
+Take a routine request: patch a web server fleet, validate the configuration, and restart the web server only if something has changed. The playbook needs package management, a config test, a handler, and a health check that can roll back on failure. Building that from scratch can take a lot of time. With AI-assisted generation, the bulk of the playbook appears in a few minutes, leaving the engineer to review the choices and run it in check mode before any real change.
 
 ### Example: AI-Assisted Ansible Playbook Generator
 
@@ -322,26 +320,20 @@ if __name__ == "__main__":
 
 ### Why This Pattern Works
 
-The generator is not doing anything magical. It is enforcing the same rules a senior engineer would enforce during code review:
+The generator is enforcing the same rules a senior engineer would enforce during code review:
 
 - Handlers instead of inline restarts
 - `changed_when` for `command` and `shell` tasks
 - Per-task privilege escalation
 - Validation of required fields before the playbook reaches a pull request
 
-The result is a first draft that is already closer to production than a blank template.
-
-### Maintenance Savings
-
-Picture a mid-sized ops team maintaining a playbook library of roughly one hundred playbooks. Every quarter each playbook needs a refresh — a dependency bump, a security patch, or a small application change. Under the old workflow, refreshing one playbook takes an hour and a half of focused engineering time. Across the whole library that is one and a half person-weeks of work each quarter.
-
-With AI-assisted generation, the same refresh takes about twenty minutes once an engineer reviews and tests the diff. The per-playbook saving is over an hour, and across the library the team recovers nearly five person-days per quarter. At a fully loaded automation-engineering rate of $100 per hour, that is roughly $47,000 per year recovered from playbook maintenance alone — before counting the new automation the team now has bandwidth to write.
+The result is a first draft that is already closer to production.
 
 ## systemd: Hardened Unit Files from a Description
 
 ![systemd service hardening — isolated unit files with resource limits and security options](https://implement1.github.io/img/ai-augmented-automation/systemd-hardening.png)
 
-systemd controls service lifecycles, dependency ordering, resource limits, and automatic restart behavior. Writing a robust unit file requires remembering dozens of directives: `NoNewPrivileges`, `PrivateTmp`, `ProtectSystem`, `ProtectHome`, `CPUQuota`, `MemoryMax`, restart policies, and more. Under pressure, even experienced engineers omit hardening options.
+Systemd controls service lifecycles, dependency ordering, resource limits, and automatic restart behavior. Writing a robust unit file requires remembering dozens of directives: `NoNewPrivileges`, `PrivateTmp`, `ProtectSystem`, `ProtectHome`, `CPUQuota`, `MemoryMax`, restart policies, and more. Under pressure, even experienced engineers omit hardening options.
 
 AI-assisted generation can take a description like *"run a web application service with privilege dropping, filesystem isolation, and automatic restart on failure"* and produce a unit file that includes the right security directives for that service type.
 
@@ -355,11 +347,7 @@ The generator tailors hardening based on the service category:
 | Database | `MemoryMax`, `CPUQuota`, `TasksMax`, `OOMScoreAdjust` |
 | Batch / worker | `Restart=on-failure`, `StartLimitIntervalSec`, `RestartSec`, `TimeoutStartSec` |
 
-A unit file that takes thirty to sixty minutes to write manually can be drafted in five to ten minutes. For an organization deploying twenty new services per month, that is roughly fifteen hours saved — about $18,000 annually at typical engineering rates.
-
-### The Security Benefit
-
-Consistency matters more than encyclopedic knowledge. AI-generated units include the same baseline hardening every time, regardless of who requested the service or how busy the engineer was. That reduces attack surface without requiring every team member to memorize every systemd directive.
+A unit file that takes thirty to sixty minutes to write manually can be drafted in five to ten minutes.
 
 ## Readiness Checklist Before Production
 
@@ -385,18 +373,6 @@ AI-generated automation is only as safe as the validation pipeline around it. Be
 - Engineers can review Ansible playbooks and systemd unit files for subtle errors
 - Training programs exist before broad deployment
 
-## Measuring Return on Investment
-
-A practical ROI model accounts for development time savings, reduced error rates, improved resource utilization, and faster incident response. The key inputs are:
-
-- Number of engineers and their fully loaded hourly cost
-- Hours spent on automation development and maintenance
-- Volume of playbooks, unit files, and manifests created or updated
-- Incident frequency and average investigation time
-- Backlog size and closure rate
-
-Even conservative efficiency assumptions tend to produce positive returns within the first year. The largest benefits are often indirect: automation backlogs that finally clear, security hardening applied consistently, and incident context surfaced faster than manual triage allows.
-
 ## Best Practices and Risk Management
 
 ### Testing and Rollout
@@ -421,18 +397,8 @@ Track these metrics over time:
 - Time required for human review
 - Engineer satisfaction with the assistant output
 
-### Key Risks
-
-**Model hallucination**: The model can produce plausible but incorrect automation. Mitigate with comprehensive testing, especially for edge cases and unusual configurations.
-
-**Prompt injection**: Sanitize all system-sourced input before adding it to prompts, enforce strict output schemas, and treat generated output as untrusted.
-
-**Secrets leakage**: Never include raw credentials, API keys, or private keys in prompts. Use placeholders and resolve secrets through Vault, AWS Secrets Manager, or systemd credentials.
-
-**Data exfiltration**: External LLM APIs transmit operational context. Classify what can be sent externally, enforce prompt guardrails, and verify provider data-use policies.
-
-**Skill decay**: Engineers still need to understand the underlying tools. Manual automation exercises and training preserve the ability to review and override AI output.
-
 ## Conclusion
 
-AI-assisted automation does not replace Ansible or systemd. It makes the engineers using them faster and more consistent. The combination of natural language intent, structured generation, and rigorous validation turns hours of boilerplate work into minutes of review and refinement. Organizations that measure the gains, maintain strong guardrails, and keep humans in the loop for high-risk work will see the clearest returns — both in time saved and in broader, more reliable automation coverage.
+The real promise of AI in infrastructure work is not a robot that takes over the datacenter. It is a tool that removes the slowest part of the writing process: getting from a clear idea to a correct first draft. Ansible and systemd stay exactly where they are, doing the same jobs they already do well. What changes is how quickly the surrounding playbooks and unit files are produced, and how consistently they include the safety checks that separate a quick script from something you would run in production.
+
+Engineers who treat these generators as junior collaborators — accepting the draft, questioning the choices, and running the same validation they would apply to any human-written change — get the most out of them. The return is measured in more than hours: it shows up as backlogs that shrink, hardening that is applied by default, and teams that can spend more of their time on work that actually moves the platform forward.
